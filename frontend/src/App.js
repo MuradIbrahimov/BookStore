@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import {
   BrowserRouter as Router,
   Route,
@@ -7,10 +7,14 @@ import {
 } from "react-router-dom";
 import Login from "./components/Login";
 import AdminDashboard from "./components/AdminDashboard";
-import CustomerDashboard from "./components/CustomerDashboard";
-
+import Logout from "./components/Logout";
 function App() {
-  const user = JSON.parse(localStorage.getItem("user")); // Check logged-in user
+  const [user, setUser] = useState(null);
+
+  useEffect(() => {
+    const storedUser = JSON.parse(localStorage.getItem("user"));
+    setUser(storedUser);
+  }, []);
 
   return (
     <Router>
@@ -26,16 +30,7 @@ function App() {
             )
           }
         />
-        <Route
-          path="/customer/dashboard"
-          element={
-            user?.role === "customer" ? (
-              <CustomerDashboard />
-            ) : (
-              <Navigate to="/" />
-            )
-          }
-        />
+        <Route path="/logout" element={<Logout />} />
       </Routes>
     </Router>
   );

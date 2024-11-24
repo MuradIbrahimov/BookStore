@@ -1,5 +1,5 @@
 export const authenticate = (req, res, next) => {
-  if (!req.cookies.user) {
+  if (!req.cookies || !req.cookies.user) {
     return res.status(401).json({ message: "Unauthorized access" });
   }
   req.user = req.cookies.user; // Add user data to request object

@@ -7,6 +7,7 @@ import { fileURLToPath } from "url";
 import authRouter from "./routes/auth.js"; // Import the auth route
 import { promisePool } from "./db/sql.js"; // Import promisePool
 import adminRouter from "./routes/admin.js"; // Import the auth route
+import cookieParser from "cookie-parser";
 
 // Resolve __dirname for ES Modules
 const __filename = fileURLToPath(import.meta.url);
@@ -44,6 +45,8 @@ app.use(
 
 // Middleware for live reload
 app.use(connectLivereload());
+// Use cookie-parser middleware
+app.use(cookieParser());
 
 // Set up LiveReload server
 const liveReloadServer = livereload.createServer();
@@ -58,7 +61,7 @@ liveReloadServer.server.once("connection", () => {
 
 // Use the auth router for handling /auth routes
 app.use("/auth", authRouter);
-app.use("admin/dashboard", adminRouter);
+app.use("/admin", adminRouter);
 // Define a simple test route
 app.get("/", (req, res) => {
   res.send("Hello, world! LiveReload is enabled.");

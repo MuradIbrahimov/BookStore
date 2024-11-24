@@ -1,7 +1,7 @@
 import express from "express";
 const router = express.Router();
 
-import { authenticate, authorizeCustomer } from "../middleware/authMiddleware";
+import { authenticate, authorizeCustomer } from "./middleware/authMiddleware";
 
 router.get("/dashboard", authenticate, authorizeCustomer, (req, res) => {
   res.render("customer/dashboard", { user: req.user });

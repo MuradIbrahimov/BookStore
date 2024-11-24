@@ -1,4 +1,4 @@
-const express = require("express");
+import express from "express";
 const router = express.Router();
 import {
   authenticate,
@@ -9,6 +9,8 @@ import {
 router.get("/dashboard", authenticate, authorizeAdmin, (req, res) => {
   res.render("admin/dashboard", { user: req.user });
 });
+
+
 
 // 1. Add/Edit/Delete Book
 router.post("/books", (req, res) => {

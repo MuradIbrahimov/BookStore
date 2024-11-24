@@ -11,23 +11,36 @@ const Login = () => {
   const handleLogin = async (e) => {
     e.preventDefault();
     try {
-      const response = await axios.post("http://localhost:5000/auth/login", {
-        email,
-        password,
-      });
-      const { token, userType } = response.data;
+      console.log("Sending login request for:", email);
+      const response = await axios.post(
+        "http://localhost:5000/auth/login",
+        {
+          email,
+          password,
+        },
+        { withCredentials: true }
+      );
 
-      // Save user details to localStorage
-      localStorage.setItem("user", JSON.stringify({ token, role: userType }));
+      console.log("Login response:", response.data);
+
+      const { role } = response.data;
+
+      // Save user role to localStorage
+      localStorage.setItem("user", JSON.stringify({ role }));
 
       // Redirect based on role
-      if (userType === "admin" || userType === "super_admin") {
+      if (role === "admin" || role === "super_admin") {
         navigate("/admin/dashboard");
-      } else if (userType === "customer") {
+      } else if (role === "customer") {
         navigate("/customer/dashboard");
+      } else {
+        throw new Error("Unknown user role");
       }
     } catch (err) {
-      setError("Invalid credentials. Please try again.");
+      console.error("Login error:", err);
+      const errorMessage =
+        err.response?.data?.message || "Invalid credentials. Please try again.";
+      setError(errorMessage);
     }
   };
 
