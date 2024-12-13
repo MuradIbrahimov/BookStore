@@ -1,8 +1,7 @@
-import cookieParser from "cookie-parser";
 import express from "express";
+import cookieParser from "cookie-parser";
 import expressSession from "express-session";
 import { selectSql } from "../database/sql";
-import bcrypt from "bcrypt";
 
 const router = express.Router();
 
@@ -15,39 +14,29 @@ router.use(
   })
 );
 
+// GET /auth
 router.get("/", (req, res) => {
   if (req.cookies.user) {
-    res.render("admin", {
-      user: req.cookies.user,
-    });
+    res.render("admin", { user: req.cookies.user });
   } else {
-    res.render("login");
+    res.render("adminLogin");
   }
 });
 
-router.get("/logout", (req, res) => {
-  if (req.cookies.user) {
-    res.clearCookie("user");
-    res.redirect("/");
-  } else {
-    res.redirect("/");
-  }
-});
+// POST /auth
 router.post("/", async (req, res) => {
   const vars = req.body;
   console.log("Login attempt:", vars);
 
   try {
-    const users = await selectSql.getUsers();
+    const users = await selectSql.getAdmins();
     console.log("Fetched users:", users);
 
     let checkLogin = false;
     let whoAmI;
-    console.log(vars.password);
-    for (const user of users) {
-      console.log("Checking user:", user);
 
-      const isPasswordValid = vars.password === user.password; // Debug before bcrypt
+    for (const user of users) {
+      const isPasswordValid = vars.password === user.password;
 
       if (vars.email === user.email && isPasswordValid) {
         checkLogin = true;
@@ -61,14 +50,24 @@ router.post("/", async (req, res) => {
         expires: new Date(Date.now() + 3600000),
         httpOnly: true,
       });
-      res.redirect("/");
+      res.redirect("/auth"); // Redirect to admin dashboard
     } else {
       console.log("Login failed for:", vars.email);
-      res.redirect("/");
+      res.redirect("/auth"); // Redirect back to login page
     }
   } catch (error) {
     console.error("Error during login:", error);
     res.status(500).send("Internal Server Error");
+  }
+});
+
+// GET /auth/logout
+router.get("/logout", (req, res) => {
+  if (req.cookies.user) {
+    res.clearCookie("user");
+    res.redirect("/auth");
+  } else {
+    res.redirect("/auth");
   }
 });
 
