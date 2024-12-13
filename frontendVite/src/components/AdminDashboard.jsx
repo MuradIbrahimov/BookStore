@@ -21,17 +21,29 @@ const AdminDashboard = () => {
     const verifyAuth = async () => {
       try {
         console.log("Verifying authentication...");
-        const response = await instances.get("/admin/dashboard");
+        const user = JSON.parse(localStorage.getItem("user"));
+        const token = user?.token;
+
+        if (!token) {
+          throw new Error("No token found");
+        }
+
+        const response = await instances.get("/admin/dashboard", {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
         console.log("Authentication verified:", response.data);
       } catch (err) {
         console.error(
           "Authentication verification failed:",
-          err.response?.data
+          err.response?.data || err.message
         );
         setError("Session expired. Please log in again.");
         window.location.href = "/";
       }
     };
+
     verifyAuth();
   }, []);
 

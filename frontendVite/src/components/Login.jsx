@@ -11,18 +11,15 @@ const Login = () => {
   const handleLogin = async (e) => {
     e.preventDefault();
     try {
-      const response = await instances.post("/auth/login", { email, password });
-      const { role } = response.data;
+      const response = await instances.post("/login/admin", {
+        email,
+        password,
+      });
+      const { role, token } = response.data;
 
-      localStorage.setItem("user", JSON.stringify({ role }));
+      localStorage.setItem("user", JSON.stringify({ role, token }));
 
-      if (role === "admin" || role === "super_admin") {
-        navigate("/admin/dashboard");
-      } else if (role === "customer") {
-        navigate("/customer/dashboard");
-      } else {
-        throw new Error("Unknown user role");
-      }
+      navigate("/admin/dashboard");
     } catch (err) {
       const errorMessage =
         err.response?.data?.message || "Invalid credentials. Please try again.";

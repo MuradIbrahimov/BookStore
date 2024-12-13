@@ -1,12 +1,14 @@
 import express from "express";
 import connectLivereload from "connect-livereload";
 import livereload from "livereload";
-import cors from "cors"; // Import CORS
+import cors from "cors";
 import path from "path";
 import { fileURLToPath } from "url";
-import { promisePool } from "./db/sql.js"; // Import promisePool
-
-import session from "express-session"; // Import express-session
+import { promisePool } from "./database/db.js";
+import cookieParser from "cookie-parser"; // Fixed incorrect import name
+import session from "express-session";
+import loginRoutes from "./routes/login.js"; // Import the login routes
+import AdminDashboard from "./routes/adminDashboard.js";
 
 // Resolve __dirname for ES Modules
 const __filename = fileURLToPath(import.meta.url);
@@ -16,7 +18,7 @@ const __dirname = path.dirname(__filename);
 const app = express();
 
 // Middleware to parse JSON request bodies
-app.use(express.json()); // Required for POST requests with JSON payloads
+app.use(express.json());
 
 // Attach the database connection to req
 app.use((req, res, next) => {
@@ -33,7 +35,6 @@ const allowedOrigins = ["http://localhost:3000", "http://127.0.0.1:3000"];
 app.use(
   cors({
     origin: (origin, callback) => {
-      // Allow requests with no origin (like mobile apps or Postman)
       if (!origin || allowedOrigins.includes(origin)) {
         callback(null, true);
       } else {
@@ -41,7 +42,7 @@ app.use(
         callback(new Error("Not allowed by CORS"));
       }
     },
-    credentials: true, // Allow credentials (cookies, etc.)
+    credentials: true,
   })
 );
 
@@ -56,19 +57,12 @@ app.use(
     saveUninitialized: false,
     cookie: {
       maxAge: 3600000, // 1-hour session duration
-      httpOnly: true, // Prevent client-side access to the cookie
+      httpOnly: true,
       secure: false, // Set to true in production with HTTPS
-      sameSite: "Lax", // Prevent CSRF
+      sameSite: "Lax",
     },
   })
 );
-// app.use((req, res, next) => {
-//   console.log("[DEBUG] Cookies:", req.headers.cookie);
-//   console.log("[DEBUG] Session ID:", req.sessionID);
-//   console.log("[DEBUG] Session Data:", req.session);
-//   next();
-// });
-
 
 // Middleware for live reload
 app.use(connectLivereload());
@@ -84,8 +78,10 @@ liveReloadServer.server.once("connection", () => {
   }, 100);
 });
 
-
-// Define a simple test route
+// Register login routes
+app.use("/login", loginRoutes); // Add the login routes under the "/auth" path
+app.use("/admin", AdminDashboard);
+// Test Route
 app.get("/", (req, res) => {
   res.send("Hello, world! LiveReload is enabled.");
 });

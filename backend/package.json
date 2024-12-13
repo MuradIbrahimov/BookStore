@@ -17,6 +17,7 @@
     "cors": "^2.8.5",
     "express": "^4.21.1",
     "express-session": "^1.18.1",
+    "jsonwebtoken": "^9.0.2",
     "livereload": "^0.9.3",
     "mysql": "^2.18.1",
     "mysql2": "^3.11.4"
