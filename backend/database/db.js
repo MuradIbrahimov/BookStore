@@ -77,6 +77,15 @@ const insertSql = {
       throw new Error(`Error saving session: ${err.message}`);
     }
   },
+  deleteSessionByToken: async (token) => {
+    try {
+      const query = "DELETE FROM sessions WHERE token = ?";
+      const [result] = await promisePool.query(query, [token]);
+      return result; // Return the result to check affectedRows
+    } catch (err) {
+      throw new Error(`Error deleting session: ${err.message}`);
+    }
+  },
 };
 
 export { promisePool, selectSql, insertSql };

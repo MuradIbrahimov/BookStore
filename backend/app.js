@@ -5,10 +5,12 @@ import cors from "cors";
 import path from "path";
 import { fileURLToPath } from "url";
 import { promisePool } from "./database/db.js";
-import cookieParser from "cookie-parser"; // Fixed incorrect import name
+import cookieParser from "cookie-parser";
 import session from "express-session";
-import loginRoutes from "./routes/login.js"; // Import the login routes
+import loginRoutes from "./routes/login.js";
 import AdminDashboard from "./routes/adminDashboard.js";
+import LogoutRouter from "./routes/logout.js";
+import MySQLStore from "express-mysql-session"; // Add MySQL session store
 
 // Resolve __dirname for ES Modules
 const __filename = fileURLToPath(import.meta.url);
@@ -18,6 +20,7 @@ const __dirname = path.dirname(__filename);
 const app = express();
 
 // Middleware to parse JSON request bodies
+app.use(express.urlencoded({ extended: false }));
 app.use(express.json());
 
 // Attach the database connection to req
@@ -49,19 +52,18 @@ app.use(
 // Use cookie-parser middleware
 app.use(cookieParser());
 
-// Configure session middleware
-app.use(
-  session({
-    secret: "murad", // Replace with your own secret
-    resave: false,
-    saveUninitialized: false,
-    cookie: {
-      maxAge: 3600000, // 1-hour session duration
-      httpOnly: true,
-      secure: false, // Set to true in production with HTTPS
-      sameSite: "Lax",
-    },
-  })
+// Configure session middleware with MySQL store
+const MySQLSessionStore = MySQLStore(session);
+
+const sessionStore = new MySQLSessionStore(
+  {
+    host: "localhost",
+    port: 3306,
+    user: "root",
+    password: "root",
+    database: "bookstoredb",
+  },
+  promisePool
 );
 
 // Middleware for live reload
@@ -78,9 +80,10 @@ liveReloadServer.server.once("connection", () => {
   }, 100);
 });
 
-// Register login routes
-app.use("/login", loginRoutes); // Add the login routes under the "/auth" path
-app.use("/admin", AdminDashboard);
+// Register routes
+app.use("/", loginRoutes); // Login routes
+app.use("/admin", AdminDashboard); // Admin dashboard routes
+
 // Test Route
 app.get("/", (req, res) => {
   res.send("Hello, world! LiveReload is enabled.");
