@@ -1,58 +1,203 @@
 <div class="container my-5">
-  <h2>Books</h2>
+  <h2 class="py-2">Books</h2>
   <!-- Add Book Form -->
-  <form method="post" action="/auth/books/add" class="mb-4">
+  <form method="post" action="/admin/books/add" class="mb-4">
     <div class="row g-3">
-      <div class="col-md-3">
-        <input type="text" name="title" placeholder="Title" class="form-control" required />
+      <div class="col-md-2">
+        <input
+          type="text"
+          name="isbn"
+          placeholder="ISBN"
+          class="form-control"
+          required
+        />
       </div>
       <div class="col-md-2">
-        <input type="number" name="author_id" placeholder="Author ID" class="form-control" required />
+        <input
+          type="text"
+          name="title"
+          placeholder="Title"
+          class="form-control"
+          required
+        />
       </div>
       <div class="col-md-2">
-        <input type="number" name="published_year" placeholder="Year" class="form-control" required />
+        <input
+          type="text"
+          name="author_name"
+          placeholder="Author Name"
+          class="form-control"
+          required
+        />
+      </div>
+
+      <div class="col-md-2">
+        <input
+          type="number"
+          name="year"
+          placeholder="Year"
+          class="form-control"
+          required
+        />
       </div>
       <div class="col-md-2">
-        <input type="text" name="genre" placeholder="Genre" class="form-control" required />
+        <input
+          type="text"
+          name="category"
+          placeholder="Category"
+          class="form-control"
+          required
+        />
+      </div>
+      <div class="col-md-2">
+        <input
+          type="number"
+          name="price"
+          placeholder="Price"
+          class="form-control"
+          required
+        />
       </div>
       <div class="col-md-2">
         <button type="submit" class="btn btn-primary w-100">Add Book</button>
       </div>
     </div>
   </form>
-
   <!-- Books Table -->
   <table class="table table-striped">
     <thead>
       <tr>
-        <th>ID</th>
+        <th>ISBN</th>
         <th>Title</th>
-        <th>Author ID</th>
+        <th>Author(s)</th>
         <th>Published Year</th>
-        <th>Genre</th>
+        <th>Category</th>
+        <th>Price</th>
         <th>Actions</th>
       </tr>
     </thead>
     <tbody>
       {{#each books}}
-      <tr>
-        <td>{{this.id}}</td>
-        <td>{{this.title}}</td>
-        <td>{{this.author_id}}</td>
-        <td>{{this.published_year}}</td>
-        <td>{{this.genre}}</td>
-        <td>
-          <!-- Edit Form -->
-          <form method="post" action="/auth/books/edit/{{this.id}}" class="d-inline">
-            <button type="submit" class="btn btn-warning btn-sm">Edit</button>
-          </form>
-          <!-- Delete Form -->
-          <form method="post" action="/auth/books/delete/{{this.id}}" class="d-inline">
-            <button type="submit" class="btn btn-danger btn-sm">Delete</button>
-          </form>
-        </td>
-      </tr>
+        <tr id="book-{{this.isbn}}">
+          <td>{{this.isbn}}</td>
+          <td>
+            <span class="static-title">{{this.title}}</span>
+            <input
+              type="text"
+              class="form-control edit-title d-none"
+              value="{{this.title}}"
+            />
+          </td>
+          <td>
+            <span class="static-authors">{{this.author_name}}</span>
+            <input
+              type="text"
+              class="form-control edit-authors d-none"
+              placeholder="Add or replace authors (comma-separated)"
+            />
+          </td>
+          <td>
+            <span class="static-year">{{this.year}}</span>
+            <input
+              type="number"
+              class="form-control edit-year d-none"
+              value="{{this.year}}"
+            />
+          </td>
+          <td>
+            <span class="static-category">{{this.category}}</span>
+            <input
+              type="text"
+              class="form-control edit-category d-none"
+              value="{{this.category}}"
+            />
+          </td>
+          <td>
+            <span class="static-price">{{this.price}}</span>
+            <input
+              type="number"
+              step="0.01"
+              class="form-control edit-price d-none"
+              value="{{this.price}}"
+            />
+          </td>
+          <td>
+            <!-- Edit Button -->
+            <button
+              class="btn btn-warning btn-sm edit-btn"
+              onclick="toggleEdit('{{this.isbn}}')"
+            >
+              Edit
+            </button>
+            <!-- Save Button -->
+            <button
+              class="btn btn-success btn-sm save-btn d-none"
+              onclick="saveEdit('{{this.isbn}}')"
+            >
+              Save
+            </button>
+            <!-- Delete Button -->
+            <form
+              method="post"
+              action="/admin/books/delete/{{this.isbn}}"
+              class="d-inline"
+            >
+              <button type="submit" class="btn btn-danger btn-sm">
+                Delete
+              </button>
+            </form>
+          </td>
+        </tr>
       {{/each}}
     </tbody>
   </table>
 </div>
+<script>
+  function toggleEdit(isbn) {
+    const row = document.getElementById(`book-${isbn}`);
+    if (!row) {
+      console.error(`Row with ISBN ${isbn} not found`);
+      return;
+    }
+
+    // Toggle visibility for static and editable fields
+    row.querySelectorAll('.static-title, .static-authors, .static-year, .static-category, .static-price')
+      .forEach(el => el.classList.toggle('d-none'));
+
+    row.querySelectorAll('.edit-title, .edit-authors, .edit-year, .edit-category, .edit-price, .save-btn')
+      .forEach(el => el.classList.toggle('d-none'));
+  }
+
+  async function saveEdit(isbn) {
+    const row = document.getElementById(`book-${isbn}`);
+    if (!row) {
+      console.error(`Row with ISBN ${isbn} not found`);
+      return;
+    }
+
+    // Collect updated values
+    const title = row.querySelector('.edit-title').value;
+    const authors = row.querySelector('.edit-authors').value; // comma-separated
+    const year = row.querySelector('.edit-year').value;
+    const category = row.querySelector('.edit-category').value;
+    const price = row.querySelector('.edit-price').value;
+
+    try {
+      const response = await fetch(`/admin/books/edit/${isbn}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ title, authors, year, category, price }),
+      });
+
+      if (response.ok) {
+        window.location.reload(); // Reload the page to reflect changes
+      } else {
+        console.error('Failed to update book.');
+      }
+    } catch (error) {
+      console.error('Error updating book:', error);
+    }
+  }
+</script>

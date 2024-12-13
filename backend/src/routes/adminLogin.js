@@ -50,7 +50,7 @@ router.post("/", async (req, res) => {
         expires: new Date(Date.now() + 3600000),
         httpOnly: true,
       });
-      res.redirect("/auth"); // Redirect to admin dashboard
+      res.redirect("/admin"); // Redirect to admin dashboard
     } else {
       console.log("Login failed for:", vars.email);
       res.redirect("/auth"); // Redirect back to login page
@@ -61,14 +61,6 @@ router.post("/", async (req, res) => {
   }
 });
 
-// GET /auth/logout
-router.get("/logout", (req, res) => {
-  if (req.cookies.user) {
-    res.clearCookie("user");
-    res.redirect("/auth");
-  } else {
-    res.redirect("/auth");
-  }
-});
+
 
 module.exports = router;
