@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Customer Dashboard</title>
+  <link rel="stylesheet" href="/path/to/your/css/styles.css" />
+</head>
+<body>
+  <header>
+    <h1>Welcome, {{user.email}}</h1>
+    <a href="/logout" class="btn btn-danger">Logout</a>
+  </header>
+  <main>
+    <h2>What would you like to do?</h2>
+    <ul>
+      <li><a href="/customer/books">Browse Books</a></li>
+      <li><a href="/customer/reservation">View Your reservation</a></li>
+      <li><a href="/customer/basket">View your basket</a></li>
+    </ul>
+  </main>
+</body>
+</html>

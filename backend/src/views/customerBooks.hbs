@@ -1,0 +1,42 @@
+<div class="container my-5">
+  <h2>Available Books</h2>
+  <!-- Search Form -->
+  <form method="get" action="/customer/books/search" class="mb-4">
+    <div class="row g-3">
+      <div class="col-md-8">
+        <input type="text" name="query" placeholder="Search books by title, category, or ISBN" class="form-control" required />
+      </div>
+      <div class="col-md-4">
+        <button type="submit" class="btn btn-primary w-100">Search</button>
+      </div>
+    </div>
+  </form>
+
+  <!-- Books Table -->
+  <table class="table table-striped">
+    <thead>
+      <tr>
+        <th>Title</th>
+        <th>Category</th>
+        <th>Price</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {{#each books}}
+        <tr>
+          <td>{{this.title}}</td>
+          <td>{{this.category}}</td>
+          <td>{{this.price}}</td>
+          <td>
+            <form method="post" action="/customer/basket/add" class="d-inline">
+              <input type="hidden" name="book_isbn" value="{{this.isbn}}" />
+              <input type="number" name="quantity" placeholder="Qty" class="form-control d-inline w-auto" required />
+              <button type="submit" class="btn btn-success btn-sm">Add to Basket</button>
+            </form>
+          </td>
+        </tr>
+      {{/each}}
+    </tbody>
+  </table>
+</div>

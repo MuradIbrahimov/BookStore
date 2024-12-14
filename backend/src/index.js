@@ -12,7 +12,16 @@ import authorsRouther from "./routes/authors"
 import awardsRouter from "./routes/awards";
 import warehouseRouter from "./routes/warehouses";
 import adminShoppingBasketRouter from "./routes/adminBasket";
+import hbs from "hbs";
 
+//CUSTOMER
+import customerRouter from "./routes/customer";
+
+//HBS
+// Register the multiply helper
+hbs.registerHelper("multiply", (a, b) => {
+  return a * b;
+});
 const PORT = 3000;
 
 const liveReloadServer = liveReload.createServer();
@@ -45,6 +54,11 @@ app.use("/admin/authors", authorsRouther);
 app.use("/admin/awards", awardsRouter);
 app.use("/admin/warehouses", warehouseRouter);
 app.use("/admin/shoppingbaskets", adminShoppingBasketRouter);
+
+
+// CUSTOMER ROUTES
+app.use("/customer", customerRouter);
+
 
 app.listen(PORT, () => {
   console.log(`Example app listening at http://localhost:${PORT}`);

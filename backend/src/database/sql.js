@@ -35,6 +35,15 @@ export const selectSql = {
       throw err;
     }
   },
+  getCustomerByEmail: async (email) => {
+  const query = `
+    SELECT email, password 
+    FROM Customer 
+    WHERE email = ?;
+  `;
+  const [rows] = await promisePool.query(query, [email]);
+  return rows[0]; // Return the first result
+},
   getBooksWithAuthors: async () => {
     const [rows] = await promisePool.query(`
       SELECT 
@@ -222,6 +231,34 @@ LEFT JOIN Book b ON ab.book_isbn = b.isbn;
   }, {});
 
   return Object.values(groupedBaskets);
+  },
+  getAllBooks: async () => {
+  const query = `SELECT isbn, title, category, price FROM Book;`;
+  const [rows] = await promisePool.query(query);
+  return rows;
+},
+
+searchBooks: async (query) => {
+  const searchQuery = `%${query}%`;
+  const sql = `
+    SELECT isbn, title, category, price
+    FROM Book
+    WHERE title LIKE ? OR category LIKE ? OR isbn LIKE ?;
+  `;
+  const [rows] = await promisePool.query(sql, [searchQuery, searchQuery, searchQuery]);
+  return rows;
+},
+
+getCustomerBasket: async (email) => {
+  const query = `
+    SELECT b.title, c.quantity, b.price, b.isbn
+    FROM Shopping_Baskets sb
+    JOIN Contains c ON sb.id = c.shopping_basket_id
+    JOIN Book b ON c.book_isbn = b.isbn
+    WHERE sb.customer_email = ?;
+  `;
+  const [rows] = await promisePool.query(query, [email]);
+  return rows;
 },
 };
 
@@ -286,14 +323,37 @@ export const insertSql = {
     }
   },
   addShoppingBasket: async ({ order_date, customer_email }) => {
-    const query = "INSERT INTO Shopping_Baskets (order_date, customer_email) VALUES (?, ?)";
+    const query =
+      "INSERT INTO Shopping_Baskets (order_date, customer_email) VALUES (?, ?)";
     await promisePool.query(query, [order_date, customer_email]);
   },
   addBookToBasket: async ({ shopping_basket_id, book_isbn, quantity }) => {
-    const query = "INSERT INTO Contains (shopping_basket_id, book_isbn, quantity) VALUES (?, ?, ?)";
+    const query =
+      "INSERT INTO Contains (shopping_basket_id, book_isbn, quantity) VALUES (?, ?, ?)";
     await promisePool.query(query, [shopping_basket_id, book_isbn, quantity]);
   },
+  addBookToBasket: async ({ customer_email, book_isbn, quantity }) => {
+    const findBasket = `
+    SELECT id FROM Shopping_Baskets WHERE customer_email = ? ORDER BY order_date DESC LIMIT 1;
+  `;
+    const [baskets] = await promisePool.query(findBasket, [customer_email]);
 
+    let basketId;
+    if (baskets.length === 0) {
+      const createBasket = `INSERT INTO Shopping_Baskets (order_date, customer_email) VALUES (NOW(), ?);`;
+      const [result] = await promisePool.query(createBasket, [customer_email]);
+      basketId = result.insertId;
+    } else {
+      basketId = baskets[0].id;
+    }
+
+    const addBook = `
+    INSERT INTO Contains (shopping_basket_id, book_isbn, quantity)
+    VALUES (?, ?, ?)
+    ON DUPLICATE KEY UPDATE quantity = quantity + VALUES(quantity);
+  `;
+    await promisePool.query(addBook, [basketId, book_isbn, quantity]);
+  },
 };
 
 export const updateSql = {

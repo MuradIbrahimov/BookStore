@@ -1,0 +1,32 @@
+<div class="container my-5">
+  <h2>Your Basket</h2>
+
+  <!-- Basket Table -->
+  <table class="table table-striped">
+    <thead>
+      <tr>
+        <th>Book Title</th>
+        <th>Quantity</th>
+        <th>Price</th>
+        <th>Total</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {{#each basket}}
+        <tr>
+          <td>{{this.title}}</td>
+          <td>{{this.quantity}}</td>
+          <td>{{this.price}}</td>
+          <td>{{multiply this.quantity this.price}}</td>
+          <td>
+            <form method="post" action="/customer/basket/remove" class="d-inline">
+              <input type="hidden" name="book_isbn" value="{{this.isbn}}" />
+              <button type="submit" class="btn btn-danger btn-sm">Remove</button>
+            </form>
+          </td>
+        </tr>
+      {{/each}}
+    </tbody>
+  </table>
+</div>

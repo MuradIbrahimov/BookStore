@@ -1,70 +1,52 @@
-import cookieParser from "cookie-parser";
 import express from "express";
+import cookieParser from "cookie-parser";
 import expressSession from "express-session";
-import { selectSql } from "../database/sql";
-import bcrypt from "bcrypt";
+import { selectSql } from "../database/sql"; // Assuming this is your database module
 
 const router = express.Router();
 
+// Middleware for cookies and session handling
 router.use(cookieParser());
 router.use(
   expressSession({
-    secret: "dilab",
+    secret: "your_secret_key", // Replace with a secure key
     resave: true,
     saveUninitialized: true,
   })
 );
 
+// Login Page
 router.get("/", (req, res) => {
-  if (req.cookies.user) {
-    res.render("admin", {
-      user: req.cookies.user,
-    });
+  if (req.cookies.user && req.cookies.user.role === "customer") {
+    // If user exists in cookies and has 'customer' role, render customer page
+    res.render("customer", { user: req.cookies.user });
   } else {
-    res.render("login");
+    res.render("login"); // Render login page for unauthenticated users
   }
 });
 
-router.get("/logout", (req, res) => {
-  if (req.cookies.user) {
-    res.clearCookie("user");
-    res.redirect("/");
-  } else {
-    res.redirect("/");
-  }
-});
+// Login Attempt
 router.post("/", async (req, res) => {
-  const vars = req.body;
-  console.log("Login attempt:", vars);
+  const { email, password } = req.body;
 
   try {
-    const users = await selectSql.getUsers();
-    console.log("Fetched users:", users);
+    // Fetch customer from the database
+    const customer = await selectSql.getCustomerByEmail(email);
 
-    let checkLogin = false;
-    let whoAmI;
-    console.log(vars.password);
-    for (const user of users) {
-      console.log("Checking user:", user);
+    if (customer && customer.password === password) {
+      // If customer exists and password matches, set user in cookies
+      res.cookie(
+        "user",
+        { email: customer.email, role: "customer" }, // Assign 'customer' role
+        {
+          httpOnly: true,
+          maxAge: 3600000, // 1 hour
+        }
+      );
 
-      const isPasswordValid = vars.password === user.password; // Debug before bcrypt
-
-      if (vars.email === user.email && isPasswordValid) {
-        checkLogin = true;
-        whoAmI = user.id;
-        break;
-      }
-    }
-
-    if (checkLogin) {
-      res.cookie("user", whoAmI, {
-        expires: new Date(Date.now() + 3600000),
-        httpOnly: true,
-      });
-      res.redirect("/");
+      res.redirect("/customer"); // Redirect to customer page
     } else {
-      console.log("Login failed for:", vars.email);
-      res.redirect("/");
+      res.render("login", { error: "Invalid email or password" });
     }
   } catch (error) {
     console.error("Error during login:", error);
@@ -72,4 +54,10 @@ router.post("/", async (req, res) => {
   }
 });
 
-module.exports = router;
+// Logout Route
+router.get("/logout", (req, res) => {
+  res.clearCookie("user");
+  res.redirect("/");
+});
+
+export default router;
