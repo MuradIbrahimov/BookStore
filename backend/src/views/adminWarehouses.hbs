@@ -1,0 +1,124 @@
+<div class="container my-5">
+  <h2 class="py-2">Warehouses</h2>
+
+  <!-- Add Warehouse Form -->
+  <form method="post" action="/admin/warehouses/add" class="mb-4">
+    <div class="row g-3">
+      <div class="col-md-3">
+        <input type="text" name="code" placeholder="Warehouse Code" class="form-control" required />
+      </div>
+      <div class="col-md-4">
+        <input type="text" name="address" placeholder="Address" class="form-control" required />
+      </div>
+      <div class="col-md-3">
+        <input type="text" name="phone" placeholder="Phone" class="form-control" required />
+      </div>
+      <div class="col-md-2">
+        <button type="submit" class="btn btn-primary w-100">Add Warehouse</button>
+      </div>
+    </div>
+  </form>
+
+  <!-- Add Inventory Form -->
+  <form method="post" action="/admin/warehouses/addInventory" class="mb-4">
+    <div class="row g-3">
+      <div class="col-md-3">
+        <input type="text" name="warehouse_code" placeholder="Warehouse Code" class="form-control" required />
+      </div>
+      <div class="col-md-3">
+        <input type="text" name="book_isbn" placeholder="Book ISBN" class="form-control" required />
+      </div>
+      <div class="col-md-2">
+        <input type="number" name="number" placeholder="Quantity" class="form-control" required />
+      </div>
+      <div class="col-md-2">
+        <button type="submit" class="btn btn-primary w-100">Add Inventory</button>
+      </div>
+    </div>
+  </form>
+
+  <!-- Warehouses Table -->
+  <table class="table table-striped">
+    <thead>
+      <tr>
+        <th>Code</th>
+        <th>Address</th>
+        <th>Phone</th>
+        <th>Inventory</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {{#each warehouses}}
+        <tr id="warehouse-{{this.code}}">
+          <td>{{this.code}}</td>
+          <td>{{this.address}}</td>
+          <td>{{this.phone}}</td>
+          <td>
+            {{#each this.inventory}}
+              <form method="post" action="/admin/warehouses/updateInventory" class="d-inline">
+                <span>{{this.book_title}} ({{this.book_isbn}}): </span>
+                <input
+                  type="number"
+                  name="number"
+                  value="{{this.number}}"
+                  class="form-control d-inline w-auto"
+                  required
+                />
+                <input type="hidden" name="warehouse_code" value="{{../code}}" />
+                <input type="hidden" name="book_isbn" value="{{this.book_isbn}}" />
+                <button type="submit" class="btn btn-sm btn-success">Update</button>
+              </form>
+              <br />
+            {{/each}}
+          </td>
+          <td>
+            <form method="post" action="/admin/warehouses/delete/{{this.code}}" class="d-inline">
+              <button type="submit" class="btn btn-danger btn-sm">Delete Warehouse</button>
+            </form>
+          </td>
+        </tr>
+      {{/each}}
+    </tbody>
+  </table>
+</div>
+
+<script>
+  function toggleEdit(code) {
+    const row = document.getElementById(`warehouse-${code}`);
+    if (!row) {
+      console.error(`Row with code ${code} not found`);
+      return;
+    }
+
+    row.querySelectorAll('.static-address, .static-phone').forEach(el => el.classList.toggle('d-none'));
+    row.querySelectorAll('.edit-address, .edit-phone, .save-btn').forEach(el => el.classList.toggle('d-none'));
+  }
+
+  async function saveEdit(code) {
+    const row = document.getElementById(`warehouse-${code}`);
+    if (!row) {
+      console.error(`Row with code ${code} not found`);
+      return;
+    }
+
+    const address = row.querySelector('.edit-address').value;
+    const phone = row.querySelector('.edit-phone').value;
+
+    try {
+      const response = await fetch(`/admin/warehouses/edit/${code}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ address, phone }),
+      });
+
+      if (response.ok) {
+        window.location.reload();
+      } else {
+        console.error('Failed to update warehouse.');
+      }
+    } catch (error) {
+      console.error('Error updating warehouse:', error);
+    }
+  }
+</script>

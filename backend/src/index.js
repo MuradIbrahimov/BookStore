@@ -10,6 +10,7 @@ import adminRouter from "./routes/admin";
 import booksRouter from "./routes/books";
 import authorsRouther from "./routes/authors"
 import awardsRouter from "./routes/awards";
+import warehouseRouter from "./routes/warehouses";
 
 const PORT = 3000;
 
@@ -41,6 +42,8 @@ app.use("/admin", adminRouter);
 app.use("/admin/books", booksRouter);
 app.use("/admin/authors", authorsRouther);
 app.use("/admin/awards", awardsRouter);
+app.use("/admin/warehouses", warehouseRouter);
+
 app.listen(PORT, () => {
   console.log(`Example app listening at http://localhost:${PORT}`);
 });

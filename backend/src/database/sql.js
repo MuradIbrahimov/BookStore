@@ -144,6 +144,35 @@ LEFT JOIN Book b ON ab.book_isbn = b.isbn;
     const [rows] = await promisePool.query(query, [name]);
     return rows[0];
   },
+  getWarehousesWithInventory: async () => {
+    const query = `
+    SELECT 
+      w.code, w.address, w.phone, 
+      b.title AS book_title, b.isbn AS book_isbn, i.number
+    FROM Warehouses w
+    LEFT JOIN Inventory i ON w.code = i.warehouse_code
+    LEFT JOIN Book b ON i.book_isbn = b.isbn;
+  `;
+    const [rows] = await promisePool.query(query);
+    return rows.reduce((result, row) => {
+      if (!result[row.code]) {
+        result[row.code] = {
+          code: row.code,
+          address: row.address,
+          phone: row.phone,
+          inventory: [],
+        };
+      }
+      if (row.book_isbn) {
+        result[row.code].inventory.push({
+          book_title: row.book_title,
+          book_isbn: row.book_isbn,
+          number: row.number,
+        });
+      }
+      return result;
+    }, {});
+  },
 };
 
 
@@ -184,6 +213,28 @@ export const insertSql = {
     const query = `INSERT INTO Award_Book (award_name, book_isbn) VALUES (?, ?)`;
     await promisePool.query(query, [award_name, book_isbn]);
   },
+  addWarehouse: async ({ code, address, phone }) => {
+    const query = `
+    INSERT INTO Warehouses (code, address, phone)
+    VALUES (?, ?, ?);
+  `;
+    try {
+      await promisePool.query(query, [code, address, phone]);
+    } catch (error) {
+      throw new Error(`Error inserting warehouse: ${error.message}`);
+    }
+  },
+  addInventory: async ({ warehouse_code, book_isbn, number }) => {
+    const query = `
+    INSERT INTO Inventory (warehouse_code, book_isbn, number)
+    VALUES (?, ?, ?);
+  `;
+    try {
+      await promisePool.query(query, [warehouse_code, book_isbn, number]);
+    } catch (error) {
+      throw new Error(`Error inserting inventory: ${error.message}`);
+    }
+  },
 };
 
 export const updateSql = {
@@ -201,6 +252,38 @@ export const updateSql = {
   updateAward: async ({ name, year }) => {
     const query = `UPDATE Award SET year = ? WHERE name = ?`;
     await promisePool.query(query, [year, name]);
+  },
+  updateWarehouse: async ({ code, address, phone }) => {
+    const query = `
+    UPDATE Warehouses
+    SET address = ?, phone = ?
+    WHERE code = ?;
+  `;
+    try {
+      await promisePool.query(query, [address, phone, code]);
+    } catch (error) {
+      throw new Error(`Error updating warehouse: ${error.message}`);
+    }
+  },
+  updateInventory: async ({ warehouse_code, book_isbn, number }) => {
+    const query = `
+    UPDATE Inventory
+    SET number = ?
+    WHERE warehouse_code = ? AND book_isbn = ?;
+  `;
+    try {
+      await promisePool.query(query, [number, warehouse_code, book_isbn]);
+    } catch (error) {
+      throw new Error(`Error updating inventory: ${error.message}`);
+    }
+  },
+  updateInventoryQuantity: async ({ warehouse_code, book_isbn, number }) => {
+    const query = `
+      UPDATE Inventory
+      SET number = ?
+      WHERE warehouse_code = ? AND book_isbn = ?;
+    `;
+    await promisePool.query(query, [number, warehouse_code, book_isbn]);
   },
 };
 export const deleteSql = {
@@ -239,5 +322,29 @@ export const deleteSql = {
   deleteAwardBookRelationship: async (award_name) => {
     const query = `DELETE FROM Award_Book WHERE award_name = ?`;
     await promisePool.query(query, [award_name]);
+  },
+  deleteWarehouse: async (code) => {
+    const query = `
+    DELETE FROM Warehouses
+    WHERE code = ?;
+  `;
+    try {
+      await promisePool.query(query, [code]);
+    } catch (error) {
+      throw new Error(`Error deleting warehouse: ${error.message}`);
+    }
+  },
+  deleteInventoryByWarehouse: async (warehouse_code) => {
+    const query = `
+    DELETE FROM Inventory
+    WHERE warehouse_code = ?;
+  `;
+    try {
+      await promisePool.query(query, [warehouse_code]);
+    } catch (error) {
+      throw new Error(
+        `Error deleting inventory by warehouse: ${error.message}`
+      );
+    }
   },
 };
