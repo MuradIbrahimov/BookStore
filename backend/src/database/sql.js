@@ -36,14 +36,14 @@ export const selectSql = {
     }
   },
   getCustomerByEmail: async (email) => {
-  const query = `
+    const query = `
     SELECT email, password 
     FROM Customer 
     WHERE email = ?;
   `;
-  const [rows] = await promisePool.query(query, [email]);
-  return rows[0]; // Return the first result
-},
+    const [rows] = await promisePool.query(query, [email]);
+    return rows[0]; // Return the first result
+  },
   getBooksWithAuthors: async () => {
     const [rows] = await promisePool.query(`
       SELECT 
@@ -195,7 +195,7 @@ LEFT JOIN Book b ON ab.book_isbn = b.isbn;
     return rows;
   },
   getShoppingBasketsWithContents: async () => {
-  const query = `
+    const query = `
     SELECT 
       sb.id AS basket_id,
       sb.order_date,
@@ -207,59 +207,117 @@ LEFT JOIN Book b ON ab.book_isbn = b.isbn;
     LEFT JOIN Contains c ON sb.id = c.shopping_basket_id
     LEFT JOIN Book b ON c.book_isbn = b.isbn;
   `;
-  const [rows] = await promisePool.query(query);
+    const [rows] = await promisePool.query(query);
 
-  // Group rows by basket_id to organize contents under each basket
-  const groupedBaskets = rows.reduce((acc, row) => {
-    const basket = acc[row.basket_id] || {
-      id: row.basket_id,
-      order_date: row.order_date,
-      customer_email: row.customer_email,
-      contents: [],
-    };
+    // Group rows by basket_id to organize contents under each basket
+    const groupedBaskets = rows.reduce((acc, row) => {
+      const basket = acc[row.basket_id] || {
+        id: row.basket_id,
+        order_date: row.order_date,
+        customer_email: row.customer_email,
+        contents: [],
+      };
 
-    if (row.book_isbn) {
-      basket.contents.push({
-        book_isbn: row.book_isbn,
-        book_title: row.book_title,
-        quantity: row.quantity,
-      });
-    }
+      if (row.book_isbn) {
+        basket.contents.push({
+          book_isbn: row.book_isbn,
+          book_title: row.book_title,
+          quantity: row.quantity,
+        });
+      }
 
-    acc[row.basket_id] = basket;
-    return acc;
-  }, {});
+      acc[row.basket_id] = basket;
+      return acc;
+    }, {});
 
-  return Object.values(groupedBaskets);
+    return Object.values(groupedBaskets);
   },
   getAllBooks: async () => {
-  const query = `SELECT isbn, title, category, price FROM Book;`;
-  const [rows] = await promisePool.query(query);
-  return rows;
-},
+    const query = `
+   SELECT 
+  b.isbn,
+  b.title,
+  b.category,
+  b.price,
+  COALESCE(GROUP_CONCAT(DISTINCT a.name SEPARATOR ', '), 'No Authors') AS authors,
+  COALESCE(GROUP_CONCAT(DISTINCT aw.name SEPARATOR ', '), 'No Awards') AS awards,
+  COALESCE((SELECT SUM(i.number) 
+            FROM Inventory i 
+            WHERE i.book_isbn = b.isbn), 0) AS total_quantity
+FROM 
+  Book b
+LEFT JOIN 
+  Author_Book ab ON b.isbn = ab.book_isbn
+LEFT JOIN 
+  Author a ON ab.author_name = a.name
+LEFT JOIN 
+  Award_Book awb ON b.isbn = awb.book_isbn
+LEFT JOIN 
+  Award aw ON awb.award_name = aw.name
+GROUP BY 
+  b.isbn, b.title, b.category, b.price;
 
-searchBooks: async (query) => {
-  const searchQuery = `%${query}%`;
-  const sql = `
-    SELECT isbn, title, category, price
-    FROM Book
-    WHERE title LIKE ? OR category LIKE ? OR isbn LIKE ?;
   `;
-  const [rows] = await promisePool.query(sql, [searchQuery, searchQuery, searchQuery]);
+    const [rows] = await promisePool.query(query);
+    return rows;
+  },
+  searchBooks: async (query) => {
+  const sql = `
+    SELECT 
+      b.isbn,
+      b.title,
+      b.category,
+      b.price,
+      COALESCE(GROUP_CONCAT(DISTINCT a.name SEPARATOR ', '), 'No Authors') AS authors,
+      COALESCE(GROUP_CONCAT(DISTINCT aw.name SEPARATOR ', '), 'No Awards') AS awards,
+      COALESCE((SELECT SUM(i.number) 
+                FROM Inventory i 
+                WHERE i.book_isbn = b.isbn), 0) AS total_quantity
+    FROM 
+      Book b
+    LEFT JOIN 
+      Author_Book ab ON b.isbn = ab.book_isbn
+    LEFT JOIN 
+      Author a ON ab.author_name = a.name
+    LEFT JOIN 
+      Award_Book awb ON b.isbn = awb.book_isbn
+    LEFT JOIN 
+      Award aw ON awb.award_name = aw.name
+    WHERE 
+      b.title LIKE ? OR 
+      a.name LIKE ? OR 
+      aw.name LIKE ?
+    GROUP BY 
+      b.isbn, b.title, b.category, b.price;
+  `;
+  const searchQuery = `%${query}%`;
+  const [rows] = await promisePool.query(sql, [
+    searchQuery,
+    searchQuery,
+    searchQuery,
+  ]);
   return rows;
 },
-
-getCustomerBasket: async (email) => {
-  const query = `
+  getTotalBookQuantity: async (isbn) => {
+    const sql = `
+      SELECT SUM(number) AS total_quantity
+      FROM Inventory
+      WHERE book_isbn = ?;
+    `;
+    const [rows] = await promisePool.query(sql, [isbn]);
+    return rows[0]?.total_quantity || 0;
+  },
+  getCustomerBasket: async (email) => {
+    const query = `
     SELECT b.title, c.quantity, b.price, b.isbn
     FROM Shopping_Baskets sb
     JOIN Contains c ON sb.id = c.shopping_basket_id
     JOIN Book b ON c.book_isbn = b.isbn
     WHERE sb.customer_email = ?;
   `;
-  const [rows] = await promisePool.query(query, [email]);
-  return rows;
-},
+    const [rows] = await promisePool.query(query, [email]);
+    return rows;
+  },
 };
 
 

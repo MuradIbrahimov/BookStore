@@ -13,30 +13,29 @@
   </form>
 
   <!-- Books Table -->
-  <table class="table table-striped">
-    <thead>
+ <table class="table table-striped">
+  <thead>
+    <tr>
+      <th>ISBN</th>
+      <th>Title</th>
+      <th>Author</th>
+      <th>Award</th>
+      <th>Category</th>
+      <th>Price</th>
+      <th>Total Quantity</th>
+    </tr>
+  </thead>
+  <tbody>
+    {{#each books}}
       <tr>
-        <th>Title</th>
-        <th>Category</th>
-        <th>Price</th>
-        <th>Actions</th>
+        <td>{{this.isbn}}</td>
+        <td>{{this.title}}</td>
+        <td>{{this.authors}}</td>
+        <td>{{this.awards}}</td>
+        <td>{{this.category}}</td>
+        <td>{{this.price}}</td>
+        <td>{{this.total_quantity}}</td>
       </tr>
-    </thead>
-    <tbody>
-      {{#each books}}
-        <tr>
-          <td>{{this.title}}</td>
-          <td>{{this.category}}</td>
-          <td>{{this.price}}</td>
-          <td>
-            <form method="post" action="/customer/basket/add" class="d-inline">
-              <input type="hidden" name="book_isbn" value="{{this.isbn}}" />
-              <input type="number" name="quantity" placeholder="Qty" class="form-control d-inline w-auto" required />
-              <button type="submit" class="btn btn-success btn-sm">Add to Basket</button>
-            </form>
-          </td>
-        </tr>
-      {{/each}}
-    </tbody>
-  </table>
-</div>
+    {{/each}}
+  </tbody>
+</table>

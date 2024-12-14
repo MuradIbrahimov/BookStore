@@ -3,7 +3,6 @@ import { selectSql, insertSql } from "../database/sql";
 
 const router = express.Router();
 
-// Fetch all books
 // Main customer page
 router.get("/", async (req, res) => {
   if (!req.cookies.user || req.cookies.user.role !== "customer") {
@@ -11,8 +10,7 @@ router.get("/", async (req, res) => {
   }
 
   try {
-    // You can render a general customer page or the books page
-     res.render("customer", { user: req.cookies.user });
+    res.render("customer", { user: req.cookies.user });
   } catch (error) {
     console.error("Error loading customer page:", error);
     res.status(500).send("Error loading customer page.");
@@ -26,20 +24,36 @@ router.get("/books", async (req, res) => {
   }
 
   try {
-    const books = await selectSql.getAllBooks();
+      const books = await selectSql.getAllBooks();
+      console.log({ books });
+      
     res.render("customerBooks", { books });
   } catch (error) {
     console.error("Error fetching books:", error);
     res.status(500).send("Error fetching books.");
   }
 });
-// Search books
+
+// Search books by Name, Author, or Award
 router.get("/books/search", async (req, res) => {
   const { query } = req.query;
 
+  if (!query) {
+    return res.status(400).send("Search query is required.");
+  }
+
   try {
     const results = await selectSql.searchBooks(query);
-    res.render("customerBooks", { books: results });
+
+    // Enrich results with total quantity from all warehouses
+    const booksWithQuantities = await Promise.all(
+      results.map(async (book) => {
+        const totalQuantity = await selectSql.getTotalBookQuantity(book.isbn);
+        return { ...book, totalQuantity };
+      })
+    );
+
+    res.render("customerBooks", { books: booksWithQuantities });
   } catch (error) {
     console.error("Error searching books:", error);
     res.status(500).send("Error searching books.");
