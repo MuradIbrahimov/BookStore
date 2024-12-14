@@ -1,0 +1,175 @@
+<div class="container my-5">
+  <h2 class="py-2">Authors</h2>
+
+  <!-- Add Author Form -->
+  <form method="post" action="/admin/authors/add" class="mb-4">
+    <div class="row g-3">
+      <div class="col-md-3">
+        <input
+          type="text"
+          name="name"
+          placeholder="Author Name"
+          class="form-control"
+          required
+        />
+      </div>
+      <div class="col-md-3">
+        <input
+          type="text"
+          name="address"
+          placeholder="Address"
+          class="form-control"
+        />
+      </div>
+      <div class="col-md-3">
+        <input
+          type="url"
+          name="url"
+          placeholder="Website URL"
+          class="form-control"
+        />
+      </div>
+      <div class="col-md-3">
+        <input
+          type="text"
+          name="book_isbn"
+          placeholder="Associated Book ISBN (Optional)"
+          class="form-control"
+        />
+      </div>
+      <div class="col-md-2">
+        <button type="submit" class="btn btn-primary w-100">Add Author</button>
+      </div>
+        <div class="col-md-2 mb-2">
+              <button
+                class="btn btn-outline-danger w-100"
+                onclick="location.href='/admin'"
+              >
+                <i class="bi bi-gear"></i>
+                Back
+              </button>
+            </div>
+    </div>
+  </form>
+
+  <!-- Authors Table -->
+  <table class="table table-striped">
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>Address</th>
+        <th>Website</th>
+        <th>Books</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {{#each authors}}
+        <tr >
+         
+          <td>
+            <span class="static-name">{{this.name}}</span>
+            <input
+              type="text"
+              class="form-control edit-name d-none"
+              value="{{this.name}}"
+            />
+          </td>
+          <td>
+            <span class="static-address">{{this.address}}</span>
+            <input
+              type="text"
+              class="form-control edit-address d-none"
+              value="{{this.address}}"
+            />
+          </td>
+          <td>
+            <span class="static-url">{{this.url}}</span>
+            <input
+              type="url"
+              class="form-control edit-url d-none"
+              value="{{this.url}}"
+            />
+          </td>
+          <td>
+            {{#each this.books}}
+              <span>{{this.title}} ({{this.isbn}})</span><br />
+            {{/each}}
+          </td>
+          <td>
+            <!-- Edit Button -->
+            <button
+              class="btn btn-warning btn-sm edit-btn"
+              onclick="toggleEdit('{{this.id}}')"
+            >
+              Edit
+            </button>
+            <!-- Save Button -->
+            <button
+              class="btn btn-success btn-sm save-btn d-none"
+              onclick="saveEdit('{{this.id}}')"
+            >
+              Save
+            </button>
+            <!-- Delete Button -->
+            <form
+              method="post"
+              action="/admin/authors/delete/{{this.name}}"
+              class="d-inline"
+            >
+              <button type="submit" class="btn btn-danger btn-sm">
+                Delete
+              </button>
+            </form>
+          </td>
+        </tr>
+      {{/each}}
+    </tbody>
+  </table>
+</div>
+<script>
+  function toggleEdit(id) {
+    const row = document.getElementById(`author-${id}`);
+    if (!row) {
+      console.error(`Row with ID ${id} not found`);
+      return;
+    }
+
+    // Toggle visibility for static and editable fields
+    row.querySelectorAll('.static-name, .static-address, .static-url')
+      .forEach(el => el.classList.toggle('d-none'));
+    row.querySelectorAll('.edit-name, .edit-address, .edit-url, .save-btn')
+      .forEach(el => el.classList.toggle('d-none'));
+  }
+
+  async function saveEdit(id) {
+    const row = document.getElementById(`author-${id}`);
+    if (!row) {
+      console.error(`Row with ID ${id} not found`);
+      return;
+    }
+
+    // Collect updated values
+    const name = row.querySelector('.edit-name').value;
+    const address = row.querySelector('.edit-address').value;
+    const url = row.querySelector('.edit-url').value;
+
+    try {
+      const response = await fetch(`/admin/authors/edit/${id}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ name, address, url }),
+      });
+
+      if (response.ok) {
+        window.location.reload(); // Reload the page to reflect changes
+      } else {
+        console.error('Failed to update author.');
+      }
+    } catch (error) {
+      console.error('Error updating author:', error);
+    }
+  }
+</script>

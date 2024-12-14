@@ -61,7 +61,17 @@
       <div class="col-md-2">
         <button type="submit" class="btn btn-primary w-100">Add Book</button>
       </div>
+     <div class="col-md-2 mb-2">
+              <button
+                class="btn btn-outline-danger w-100"
+                onclick="location.href='/admin'"
+              >
+                <i class="bi bi-gear"></i>
+                Back
+              </button>
+            </div>
     </div>
+    
   </form>
   <!-- Books Table -->
   <table class="table table-striped">
@@ -149,9 +159,11 @@
           </td>
         </tr>
       {{/each}}
+     
     </tbody>
   </table>
 </div>
+
 <script>
   function toggleEdit(isbn) {
     const row = document.getElementById(`book-${isbn}`);
@@ -163,7 +175,6 @@
     // Toggle visibility for static and editable fields
     row.querySelectorAll('.static-title, .static-authors, .static-year, .static-category, .static-price')
       .forEach(el => el.classList.toggle('d-none'));
-
     row.querySelectorAll('.edit-title, .edit-authors, .edit-year, .edit-category, .edit-price, .save-btn')
       .forEach(el => el.classList.toggle('d-none'));
   }

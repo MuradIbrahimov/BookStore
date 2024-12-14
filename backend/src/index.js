@@ -8,6 +8,7 @@ import loginRouter from "./routes/login";
 import adminLogin from "./routes/adminLogin";
 import adminRouter from "./routes/admin";
 import booksRouter from "./routes/books";
+import authorsRouther from "./routes/authors"
 const PORT = 3000;
 
 const liveReloadServer = liveReload.createServer();
@@ -31,10 +32,13 @@ app.use(express.static(path.join(__dirname, "public")));
 
 app.use(logger("dev"));
 
+//ROUTERS
 app.use("/", loginRouter);
 app.use("/auth", adminLogin);
 app.use("/admin", adminRouter);
 app.use("/admin/books", booksRouter);
+app.use("/admin/authors", authorsRouther);
+
 
 app.listen(PORT, () => {
   console.log(`Example app listening at http://localhost:${PORT}`);

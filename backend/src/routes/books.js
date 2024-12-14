@@ -1,24 +1,21 @@
 import express from "express";
-import { selectSql, insertSql, deleteSql } from "../database/sql";
+import { selectSql, insertSql, deleteSql, updateSql } from "../database/sql";
 
 const router = express.Router();
 
-router.get("/", async (req, res) => {
-  const books = await selectSql.getBooksWithAuthors();
-  res.render("adminBooks", { books });
-});
 
 // Get all relationships between authors and books
 router.get("/", async (req, res) => {
   try {
-    const relationships = await selectSql.getAuthorBookRelationships();
-    res.render("adminBooks", { relationships });
-    res.json(relationships);
-  } catch (err) {
-    console.error("Error fetching author-book relationships:", err);
-    res.status(500).send("Error fetching relationships");
+    const books = await selectSql.getBooksWithAuthors(); // Fetch books with authors
+    console.log("Books fetched:", books); // Check if price is included
+    res.render("adminBooks", { books });
+  } catch (error) {
+    console.error("Error fetching books:", error);
+    res.status(500).send("Error fetching books.");
   }
 });
+
 router.post("/add", async (req, res) => {
   const { isbn, title, year, category, price, author_name } = req.body;
 

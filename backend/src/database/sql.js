@@ -42,6 +42,7 @@ export const selectSql = {
         b.title,
         b.year,
         b.category,
+        b.price,
         GROUP_CONCAT(a.name SEPARATOR ', ') AS author_name
       FROM 
         Book b
@@ -76,7 +77,49 @@ export const selectSql = {
     `);
     return rows;
   },
+  getAuthorsWithBooks: async () => {
+    const query = `
+      SELECT
+        a.name AS author_name,
+        a.address,
+        a.url,
+        b.isbn AS book_isbn,
+        b.title AS book_title
+      FROM author a
+      LEFT JOIN author_book ab ON a.name = ab.author_name
+      LEFT JOIN book b ON ab.book_isbn = b.isbn
+    `;
+
+    const [rows] = await promisePool.query(query);
+
+    // Group books by authors
+    const authors = [];
+    const authorMap = new Map();
+
+    rows.forEach((row) => {
+      if (!authorMap.has(row.author_name)) {
+        const author = {
+          name: row.author_name,
+          address: row.address,
+          url: row.url,
+          books: [],
+        };
+        authorMap.set(row.author_name, author);
+        authors.push(author);
+      }
+
+      if (row.book_isbn) {
+        authorMap.get(row.author_name).books.push({
+          isbn: row.book_isbn,
+          title: row.book_title,
+        });
+      }
+    });
+
+    return authors;
+  },
 };
+
 
 export const insertSql = {
   addBook: async ({ isbn, title, year, category, price }) => {
@@ -86,8 +129,9 @@ export const insertSql = {
     );
   },
   // Add a new author
-  addAuthor: async ({ name }) => {
-    await promisePool.query("INSERT INTO Author (name) VALUES (?)", [name]);
+  addAuthor: async ({ name, address=null, url=null }) => {
+    const query = "INSERT INTO author (name, address, url) VALUES (?, ?, ?)";
+    await promisePool.query(query, [name, address, url]);
   },
 
   // Add a relationship between an author and a book
@@ -106,6 +150,10 @@ export const updateSql = {
       [title, year, category, price, isbn]
     );
   },
+  updateAuthor: async ({ name, address, url }) => {
+    const query = "UPDATE author SET address = ?, url = ? WHERE name = ?";
+    await promisePool.query(query, [address, url, name]);
+  },
 };
 export const deleteSql = {
   // Delete relationships from Author_Book by book ISBN
@@ -118,5 +166,14 @@ export const deleteSql = {
   // Delete a book by ISBN
   deleteBook: async (isbn) => {
     await promisePool.query("DELETE FROM Book WHERE isbn = ?", [isbn]);
+  },
+  deleteAuthor: async (name) => {
+    const query = "DELETE FROM author WHERE name = ?";
+    await promisePool.query(query, [name]);
+  },
+  // Delete relationships for a specific author
+  deleteAuthorBookRelationshipsByAuthor: async (author_name) => {
+    const query = "DELETE FROM author_book WHERE author_name = ?";
+    await promisePool.query(query, [author_name]);
   },
 };
