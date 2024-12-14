@@ -1,0 +1,128 @@
+<div class="container my-5">
+  <h2 class="py-2">Shopping Baskets</h2>
+
+  <!-- Add Shopping Basket Form -->
+  <form method="post" action="/admin/shoppingBaskets/add" class="mb-4">
+    <div class="row g-3">
+      <div class="col-md-3">
+        <input type="date" name="order_date" placeholder="Order Date" class="form-control" required />
+      </div>
+      <div class="col-md-3">
+        <input type="email" name="customer_email" placeholder="Customer Email" class="form-control" required />
+      </div>
+      <div class="col-md-2">
+        <button type="submit" class="btn btn-primary w-100">Add Basket</button>
+      </div>
+      <div class="col-md-2 mb-2">
+              <button
+                class="btn btn-outline-danger w-100"
+                onclick="location.href='/admin'"
+              >
+                <i class="bi bi-gear"></i>
+                Back
+              </button>
+            </div>
+    </div>
+  </form>
+
+  <!-- Add Book to Basket Form -->
+  <form method="post" action="/admin/shoppingBaskets/addContains" class="mb-4">
+    <div class="row g-3">
+      <div class="col-md-3">
+        <input type="number" name="shopping_basket_id" placeholder="Basket ID" class="form-control" required />
+      </div>
+      <div class="col-md-3">
+        <input type="text" name="book_isbn" placeholder="Book ISBN" class="form-control" required />
+      </div>
+      <div class="col-md-2">
+        <input type="number" name="quantity" placeholder="Quantity" class="form-control" required />
+      </div>
+      <div class="col-md-2">
+        <button type="submit" class="btn btn-primary w-100">Add Book</button>
+      </div>
+    </div>
+  </form>
+
+  <!-- Shopping Baskets Table -->
+  <table class="table table-striped">
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Order Date</th>
+        <th>Customer Email</th>
+        <th>Contents</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {{#each baskets}}
+        <tr id="basket-{{this.id}}">
+          <td>{{this.id}}</td>
+          <td>
+            <span class="static-order-date">{{this.order_date}}</span>
+            <input type="date" class="form-control edit-order-date d-none" value="{{this.order_date}}" />
+          </td>
+          <td>
+            <span class="static-email">{{this.customer_email}}</span>
+            <input type="email" class="form-control edit-email d-none" value="{{this.customer_email}}" />
+          </td>
+        <td>
+  {{#each this.contents}}
+    <form method="post" action="/admin/shoppingBaskets/updateContains" class="d-inline">
+      <span>{{this.book_title}} ({{this.book_isbn}}): </span>
+      <input 
+        type="number" 
+        name="quantity" 
+        value="{{this.quantity}}" 
+        class="form-control d-inline w-auto" 
+        required 
+      />
+      <input type="hidden" name="shopping_basket_id" value="{{../id}}" />
+      <input type="hidden" name="book_isbn" value="{{this.book_isbn}}" />
+      <button type="submit" class="btn btn-sm btn-success">Update</button>
+    </form>
+    <br />
+  {{/each}}
+</td>
+          <td>
+            <button class="btn btn-warning btn-sm edit-btn" onclick="toggleEdit('{{this.id}}')">Edit</button>
+            <button class="btn btn-success btn-sm save-btn d-none" onclick="saveEdit('{{this.id}}')">Save</button>
+            <form method="post" action="/admin/shoppingBaskets/delete/{{this.id}}" class="d-inline">
+              <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+            </form>
+          </td>
+        </tr>
+      {{/each}}
+    </tbody>
+  </table>
+</div>
+
+<script>
+  function toggleEdit(id) {
+    const row = document.getElementById(`basket-${id}`);
+    row.querySelectorAll(".static-order-date, .static-email").forEach(el => el.classList.toggle("d-none"));
+    row.querySelectorAll(".edit-order-date, .edit-email, .save-btn").forEach(el => el.classList.toggle("d-none"));
+  }
+
+  async function saveEdit(id) {
+    const row = document.getElementById(`basket-${id}`);
+    const order_date = row.querySelector(".edit-order-date").value;
+    const customer_email = row.querySelector(".edit-email").value;
+
+    try {
+      const response = await fetch(`/admin/shoppingBaskets/edit/${id}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ order_date, customer_email }),
+      });
+
+      if (response.ok) {
+        window.location.reload();
+      } else {
+        console.error("Failed to update basket.");
+      }
+    } catch (error) {
+      console.error("Error updating basket:", error);
+    }
+  }
+</script>
