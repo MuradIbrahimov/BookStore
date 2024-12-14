@@ -1,0 +1,163 @@
+<div class="container my-5">
+  <h2 class="py-2">Awards</h2>
+
+  <!-- Add Award Form -->
+  <form method="post" action="/admin/awards/add" class="mb-4">
+    <div class="row g-3">
+      <div class="col-md-3">
+        <input
+          type="text"
+          name="name"
+          placeholder="Award Name"
+          class="form-control"
+          required
+        />
+      </div>
+      <div class="col-md-2">
+        <input
+          type="number"
+          name="year"
+          placeholder="Year"
+          class="form-control"
+          required
+        />
+      </div>
+      <div class="col-md-3">
+        <input
+          type="text"
+          name="author_name"
+          placeholder="Author Name (Optional)"
+          class="form-control"
+        />
+      </div>
+      <div class="col-md-3">
+        <input
+          type="text"
+          name="book_isbn"
+          placeholder="Book ISBN (Optional)"
+          class="form-control"
+        />
+      </div>
+      <div class="col-md-2">
+        <button type="submit" class="btn btn-primary w-100">Add Award</button>
+      </div>
+    </div>
+  </form>
+
+  <!-- Awards Table -->
+  <table class="table table-striped">
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>Year</th>
+        <th>Author</th>
+        <th>Book</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {{#each awards}}
+        <tr id="award-{{this.award_name}}">
+          <td>{{this.award_name}}</td>
+          <td>
+            <span class="static-year">{{this.year}}</span>
+            <input
+              type="number"
+              class="form-control edit-year d-none"
+              value="{{this.year}}"
+            />
+          </td>
+          <td>
+            <span class="static-author">{{this.author_name}}</span>
+            <input
+              type="text"
+              class="form-control edit-author d-none"
+              value="{{this.author_name}}"
+            />
+          </td>
+          <td>
+            <span class="static-book">{{this.book_title}} ({{this.book_isbn}})</span>
+            <input
+              type="text"
+              class="form-control edit-book d-none"
+              value="{{this.book_isbn}}"
+            />
+          </td>
+          <td>
+            <!-- Edit Button -->
+            <button
+              class="btn btn-warning btn-sm edit-btn"
+              onclick="toggleEdit('{{this.award_name}}')"
+            >
+              Edit
+            </button>
+            <!-- Save Button -->
+            <button
+              class="btn btn-success btn-sm save-btn d-none"
+              onclick="saveEdit('{{this.award_name}}')"
+            >
+              Save
+            </button>
+            <!-- Delete Button -->
+            <form
+              method="post"
+              action="/admin/awards/delete/{{this.award_name}}"
+              class="d-inline"
+            >
+              <button type="submit" class="btn btn-danger btn-sm">
+                Delete
+              </button>
+            </form>
+          </td>
+        </tr>
+      {{/each}}
+    </tbody>
+  </table>
+</div>
+
+<script>
+  function toggleEdit(name) {
+    const row = document.getElementById(`award-${name}`);
+    if (!row) {
+      console.error(`Row with name ${name} not found`);
+      return;
+    }
+
+    // Toggle visibility for static and editable fields
+    row.querySelectorAll(".static-year, .static-author, .static-book")
+      .forEach((el) => el.classList.toggle("d-none"));
+    row.querySelectorAll(".edit-year, .edit-author, .edit-book, .save-btn")
+      .forEach((el) => el.classList.toggle("d-none"));
+  }
+
+  async function saveEdit(name) {
+    const row = document.getElementById(`award-${name}`);
+    if (!row) {
+      console.error(`Row with name ${name} not found`);
+      return;
+    }
+
+    // Collect updated values
+    const year = row.querySelector(".edit-year").value;
+    const author_name = row.querySelector(".edit-author").value;
+    const book_isbn = row.querySelector(".edit-book").value;
+
+    try {
+      const response = await fetch(`/admin/awards/edit/${name}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ year, author_name, book_isbn }),
+      });
+
+      if (response.ok) {
+        window.location.reload(); // Reload the page to reflect changes
+      } else {
+        console.error("Failed to update award.");
+      }
+    } catch (error) {
+      console.error("Error updating award:", error);
+    }
+  }
+</script>

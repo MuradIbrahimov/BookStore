@@ -118,6 +118,32 @@ export const selectSql = {
 
     return authors;
   },
+
+  //AWARDS
+  getAwardsWithAssociations: async () => {
+    const query = `
+      SELECT DISTINCT
+  a.name AS award_name,
+  a.year,
+  aa.author_name,
+  b.title AS book_title,
+  ab.book_isbn
+FROM Award a
+LEFT JOIN Award_Author aa ON a.name = aa.award_name
+LEFT JOIN Award_Book ab ON a.name = ab.award_name
+LEFT JOIN Book b ON ab.book_isbn = b.isbn;
+
+    `;
+    const [rows] = await promisePool.query(query);
+    return rows;
+  },
+
+  // Get award by name
+  getAwardByName: async (name) => {
+    const query = `SELECT * FROM Award WHERE name = ?`;
+    const [rows] = await promisePool.query(query, [name]);
+    return rows[0];
+  },
 };
 
 
@@ -129,7 +155,7 @@ export const insertSql = {
     );
   },
   // Add a new author
-  addAuthor: async ({ name, address=null, url=null }) => {
+  addAuthor: async ({ name, address = null, url = null }) => {
     const query = "INSERT INTO author (name, address, url) VALUES (?, ?, ?)";
     await promisePool.query(query, [name, address, url]);
   },
@@ -140,6 +166,23 @@ export const insertSql = {
       "INSERT INTO Author_Book (author_name, book_isbn) VALUES (?, ?)",
       [author_name, book_isbn]
     );
+  },
+  // Add a new award
+  addAward: async ({ name, year }) => {
+    const query = `INSERT INTO Award (name, year) VALUES (?, ?)`;
+    await promisePool.query(query, [name, year]);
+  },
+
+  // Add an award-author relationship
+  addAwardAuthorRelationship: async ({ award_name, author_name }) => {
+    const query = `INSERT INTO Award_Author (award_name, author_name) VALUES (?, ?)`;
+    await promisePool.query(query, [award_name, author_name]);
+  },
+
+  // Add an award-book relationship
+  addAwardBookRelationship: async ({ award_name, book_isbn }) => {
+    const query = `INSERT INTO Award_Book (award_name, book_isbn) VALUES (?, ?)`;
+    await promisePool.query(query, [award_name, book_isbn]);
   },
 };
 
@@ -154,6 +197,11 @@ export const updateSql = {
     const query = "UPDATE author SET address = ?, url = ? WHERE name = ?";
     await promisePool.query(query, [address, url, name]);
   },
+  // Update award details
+  updateAward: async ({ name, year }) => {
+    const query = `UPDATE Award SET year = ? WHERE name = ?`;
+    await promisePool.query(query, [year, name]);
+  },
 };
 export const deleteSql = {
   // Delete relationships from Author_Book by book ISBN
@@ -162,7 +210,6 @@ export const deleteSql = {
       book_isbn,
     ]);
   },
-
   // Delete a book by ISBN
   deleteBook: async (isbn) => {
     await promisePool.query("DELETE FROM Book WHERE isbn = ?", [isbn]);
@@ -175,5 +222,22 @@ export const deleteSql = {
   deleteAuthorBookRelationshipsByAuthor: async (author_name) => {
     const query = "DELETE FROM author_book WHERE author_name = ?";
     await promisePool.query(query, [author_name]);
+  },
+  // Delete an award
+  deleteAward: async (name) => {
+    const query = `DELETE FROM Award WHERE name = ?`;
+    await promisePool.query(query, [name]);
+  },
+
+  // Delete all award-author relationships for a specific award
+  deleteAwardAuthorRelationship: async (award_name) => {
+    const query = `DELETE FROM Award_Author WHERE award_name = ?`;
+    await promisePool.query(query, [award_name]);
+  },
+
+  // Delete all award-book relationships for a specific award
+  deleteAwardBookRelationship: async (award_name) => {
+    const query = `DELETE FROM Award_Book WHERE award_name = ?`;
+    await promisePool.query(query, [award_name]);
   },
 };
