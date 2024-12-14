@@ -385,33 +385,31 @@ export const insertSql = {
       "INSERT INTO Shopping_Baskets (order_date, customer_email) VALUES (?, ?)";
     await promisePool.query(query, [order_date, customer_email]);
   },
-  addBookToBasket: async ({ shopping_basket_id, book_isbn, quantity }) => {
-    const query =
-      "INSERT INTO Contains (shopping_basket_id, book_isbn, quantity) VALUES (?, ?, ?)";
-    await promisePool.query(query, [shopping_basket_id, book_isbn, quantity]);
-  },
+  
   addBookToBasket: async ({ customer_email, book_isbn, quantity }) => {
-    const findBasket = `
-    SELECT id FROM Shopping_Baskets WHERE customer_email = ? ORDER BY order_date DESC LIMIT 1;
-  `;
-    const [baskets] = await promisePool.query(findBasket, [customer_email]);
-
-    let basketId;
-    if (baskets.length === 0) {
-      const createBasket = `INSERT INTO Shopping_Baskets (order_date, customer_email) VALUES (NOW(), ?);`;
-      const [result] = await promisePool.query(createBasket, [customer_email]);
-      basketId = result.insertId;
-    } else {
-      basketId = baskets[0].id;
-    }
-
-    const addBook = `
+  const query = `
     INSERT INTO Contains (shopping_basket_id, book_isbn, quantity)
-    VALUES (?, ?, ?)
+    VALUES (
+      (SELECT id FROM Shopping_Baskets WHERE customer_email = ? ORDER BY order_date DESC LIMIT 1),
+      ?, ?
+    )
     ON DUPLICATE KEY UPDATE quantity = quantity + VALUES(quantity);
   `;
-    await promisePool.query(addBook, [basketId, book_isbn, quantity]);
+  await promisePool.query(query, [customer_email, book_isbn, quantity]);
   },
+  purchaseBasket: async (email) => {
+  const query = `
+    DELETE FROM Contains 
+    WHERE shopping_basket_id = (
+      SELECT id 
+      FROM Shopping_Baskets 
+      WHERE customer_email = ? 
+      ORDER BY order_date DESC LIMIT 1
+    );
+  `;
+  const [result] = await promisePool.query(query, [email]);
+  return result.affectedRows > 0;
+},
 };
 
 export const updateSql = {
@@ -467,10 +465,51 @@ export const updateSql = {
       "UPDATE Shopping_Baskets SET order_date = ?, customer_email = ? WHERE id = ?";
     await promisePool.query(query, [order_date, customer_email, id]);
   },
-  updateBasketQuantity: async ({ shopping_basket_id, book_isbn, quantity }) => {
-    const query =
-      "UPDATE Contains SET quantity = ? WHERE shopping_basket_id = ? AND book_isbn = ?";
-    await promisePool.query(query, [quantity, shopping_basket_id, book_isbn]);
+  updateBasketQuantity: async ({ customer_email, book_isbn, quantity }) => {
+    // Log inputs for debugging
+    console.log("Updating basket:", { customer_email, book_isbn, quantity });
+
+    const query = `
+    UPDATE Contains
+    SET quantity = ?
+    WHERE shopping_basket_id IN (
+      SELECT id 
+      FROM Shopping_Baskets 
+      WHERE customer_email = ?
+    ) AND book_isbn = ?;
+  `;
+
+    try {
+      const [result] = await promisePool.query(query, [
+        quantity,
+        customer_email,
+        book_isbn,
+      ]);
+      console.log("Update result:", result);
+
+      if (result.affectedRows > 0) {
+        return true; // Rows were updated
+      } else {
+        console.warn("Failed to update basket. No rows affected.");
+        return false; // No rows matched
+      }
+    } catch (error) {
+      console.error("Error updating basket:", error);
+      throw error; // Re-throw the error to handle it upstream
+    }
+  },
+  decreaseInventory: async ({ book_isbn, quantity }) => {
+    const query = `
+    UPDATE Inventory
+    SET number = number - ?
+    WHERE book_isbn = ? AND number >= ?;
+  `;
+    const [result] = await promisePool.query(query, [
+      quantity,
+      book_isbn,
+      quantity,
+    ]);
+    return result.affectedRows > 0;
   },
 };
 export const deleteSql = {
@@ -538,4 +577,25 @@ export const deleteSql = {
     const query = "DELETE FROM Shopping_Baskets WHERE id = ?";
     await promisePool.query(query, [id]);
   },
+  deleteBookFromBasket: async ({ customer_email, book_isbn }) => {
+  const query = `
+    DELETE FROM Contains
+    WHERE shopping_basket_id = (
+      SELECT id 
+      FROM Shopping_Baskets 
+      WHERE customer_email = ? ORDER BY order_date DESC LIMIT 1
+    ) AND book_isbn = ?;
+  `;
+  await promisePool.query(query, [customer_email, book_isbn]);
+  },
+  clearBasket: async (customer_email) => {
+  const query = `
+    DELETE c
+    FROM Contains c
+    JOIN Shopping_Baskets sb ON c.shopping_basket_id = sb.id
+    WHERE sb.customer_email = ?;
+  `;
+  const [result] = await promisePool.query(query, [customer_email]);
+  return result.affectedRows > 0;
+},
 };

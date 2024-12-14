@@ -22,6 +22,10 @@ import customerRouter from "./routes/customer";
 hbs.registerHelper("multiply", (a, b) => {
   return a * b;
 });
+// Register 'gt' (greater than) helper
+hbs.registerHelper("gt", function (a, b) {
+  return a > b;
+});
 const PORT = 3000;
 
 const liveReloadServer = liveReload.createServer();
