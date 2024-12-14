@@ -318,6 +318,36 @@ GROUP BY
     const [rows] = await promisePool.query(query, [email]);
     return rows;
   },
+  getCustomerReservations: async (email) => {
+  const query = `
+    SELECT r.id, r.reservation_date, r.pickup_time, b.title AS book_title, b.isbn
+    FROM Reservation r
+    JOIN Book b ON r.book_isbn = b.isbn
+    WHERE r.customer_email = ?;
+  `;
+  const [rows] = await promisePool.query(query, [email]);
+  return rows;
+  },
+ checkConflictingReservations: async ({ reservation_id, book_isbn, pickup_time }) => {
+  const query = `
+    SELECT id
+    FROM Reservation
+    WHERE book_isbn = ? 
+      AND ABS(TIMESTAMPDIFF(MINUTE, pickup_time, ?)) < 10
+      AND id != ?;
+  `;
+  const [rows] = await promisePool.query(query, [book_isbn, pickup_time, reservation_id]);
+  return rows;
+},
+  getReservationById: async (reservation_id) => {
+  const query = `
+    SELECT book_isbn
+    FROM Reservation
+    WHERE id = ?;
+  `;
+  const [rows] = await promisePool.query(query, [reservation_id]);
+  return rows[0]; // Return the first row (or undefined if no match)
+},
 };
 
 
@@ -385,9 +415,9 @@ export const insertSql = {
       "INSERT INTO Shopping_Baskets (order_date, customer_email) VALUES (?, ?)";
     await promisePool.query(query, [order_date, customer_email]);
   },
-  
+
   addBookToBasket: async ({ customer_email, book_isbn, quantity }) => {
-  const query = `
+    const query = `
     INSERT INTO Contains (shopping_basket_id, book_isbn, quantity)
     VALUES (
       (SELECT id FROM Shopping_Baskets WHERE customer_email = ? ORDER BY order_date DESC LIMIT 1),
@@ -395,10 +425,10 @@ export const insertSql = {
     )
     ON DUPLICATE KEY UPDATE quantity = quantity + VALUES(quantity);
   `;
-  await promisePool.query(query, [customer_email, book_isbn, quantity]);
+    await promisePool.query(query, [customer_email, book_isbn, quantity]);
   },
   purchaseBasket: async (email) => {
-  const query = `
+    const query = `
     DELETE FROM Contains 
     WHERE shopping_basket_id = (
       SELECT id 
@@ -407,9 +437,33 @@ export const insertSql = {
       ORDER BY order_date DESC LIMIT 1
     );
   `;
-  const [result] = await promisePool.query(query, [email]);
-  return result.affectedRows > 0;
+    const [result] = await promisePool.query(query, [email]);
+    return result.affectedRows > 0;
+  },
+ addReservation: async ({ customer_email, book_isbn, reservation_date, pickup_time }) => {
+  const query = `
+    INSERT INTO Reservation (customer_email, book_isbn, reservation_date, pickup_time)
+    VALUES (?, ?, ?, ?);
+  `;
+  const [result] = await promisePool.query(query, [
+    customer_email,
+    book_isbn,
+    reservation_date,
+    pickup_time,
+  ]);
+  return result.insertId;
 },
+  checkConflictingReservations: async ({ book_isbn, pickup_time }) => {
+  const query = `
+    SELECT *
+    FROM Reservation
+    WHERE book_isbn = ?
+      AND ABS(TIMESTAMPDIFF(MINUTE, pickup_time, ?)) < 10;
+  `;
+  const [rows] = await promisePool.query(query, [book_isbn, pickup_time]);
+  return rows;
+  },
+  
 };
 
 export const updateSql = {
@@ -511,7 +565,57 @@ export const updateSql = {
     ]);
     return result.affectedRows > 0;
   },
+  updateReservation: async ({ reservation_id, reservation_date, pickup_time }) => {
+  const query = `
+    UPDATE Reservation
+    SET reservation_date = ?, pickup_time = ?
+    WHERE id = ?;
+  `;
+  const [result] = await promisePool.query(query, [reservation_date, pickup_time, reservation_id]);
+  return result.affectedRows > 0;
+  },
+  
+  updateReservationPickupTime: async ({ reservation_id, pickup_time }) => {
+    const query = `
+    UPDATE Reservation
+    SET pickup_time = ?
+    WHERE id = ?;
+  `;
+    const [result] = await promisePool.query(query, [
+      pickup_time,
+      reservation_id,
+    ]);
+    return result.affectedRows > 0;
+  },
+  decreaseInventoryByOne: async (book_isbn) => {
+    const query = `
+    UPDATE Inventory
+    SET number = number - 1
+    WHERE book_isbn = ? AND number > 0;
+  `;
+    const [result] = await promisePool.query(query, [book_isbn]);
+    return result.affectedRows > 0; // Return true if rows were updated
+  },
+  increaseInventoryByOne: async (book_isbn) => {
+  const query = `
+    UPDATE Inventory
+    SET number = number + 1
+    WHERE book_isbn = ?;
+  `;
+  const [result] = await promisePool.query(query, [book_isbn]);
+  return result.affectedRows > 0; // Return true if rows were updated
+},
 };
+
+
+
+
+
+
+
+
+
+
 export const deleteSql = {
   // Delete relationships from Author_Book by book ISBN
   deleteAuthorBookRelationships: async (book_isbn) => {
@@ -597,5 +701,15 @@ export const deleteSql = {
   `;
   const [result] = await promisePool.query(query, [customer_email]);
   return result.affectedRows > 0;
-},
+  },
+  deleteReservation: async (reservation_id) => {
+  const query = `
+    DELETE FROM Reservation
+    WHERE id = ?;
+  `;
+  const [result] = await promisePool.query(query, [reservation_id]);
+  return result.affectedRows > 0;
+  },
+ 
+
 };

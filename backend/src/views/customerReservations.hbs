@@ -1,0 +1,61 @@
+<div class="container my-5">
+  <div class="mb-4">
+    <a href="/customer" class="btn btn-secondary">Back to Main Page</a>
+  </div>
+
+  <h2 class="py-2">My Reservations</h2>
+
+  {{#if reservations.length}}
+    <table class="table table-striped">
+      <thead>
+        <tr>
+          <th>Title</th>
+          <th>ISBN</th>
+          <th>Reservation Date</th>
+          <th>Pickup Time</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {{#each reservations}}
+          <tr>
+            <td>{{this.book_title}}</td>
+            <td>{{this.isbn}}</td>
+            <td>
+              <form method="post" action="/customer/reservation/update" class="d-inline">
+                <input type="hidden" name="reservation_id" value="{{this.id}}" />
+                <input
+                  type="date"
+                  name="reservation_date"
+                  value="{{this.reservation_date}}"
+                  class="form-control d-inline w-auto"
+                  required
+                />
+             
+            </td>
+            <td>
+               <input
+                  type="time"
+                  name="pickup_time"
+                  value="{{this.pickup_time}}"
+                  class="form-control d-inline w-auto"
+                  required
+                />
+                
+                <button type="submit" class="btn btn-success btn-sm">Update</button>
+                 </form>
+            </td>
+            <td>
+              <form method="post" action="/customer/reservation/delete" class="d-inline">
+                <input type="hidden" name="reservation_id" value="{{this.id}}" />
+                <button type="submit" class="btn btn-danger btn-sm">Cancel</button>
+              </form>
+            </td>
+          </tr>
+        {{/each}}
+      </tbody>
+    </table>
+  {{else}}
+    <p>You have no reservations.</p>
+  {{/if}}
+</div>

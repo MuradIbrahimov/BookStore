@@ -196,5 +196,134 @@ router.post("/basket/purchase", async (req, res) => {
     res.status(500).send("Error processing purchase.");
   }
 });
+// Reserve a book
+router.post("/reserve", async (req, res) => {
+  const { email } = req.cookies.user;
+  const { book_isbn, reservation_date, pickup_time } = req.body;
+
+  try {
+    // Step 1: Check stock availability
+    const totalQuantity = await selectSql.getTotalBookQuantity(book_isbn);
+    if (totalQuantity <= 0) {
+      return res.status(400).send("Reservation failed. The book is out of stock.");
+    }
+
+    // Step 2: Check for conflicting reservations
+    const conflictingReservations = await selectSql.checkConflictingReservations({
+      book_isbn,
+      pickup_time,
+    });
+
+    if (conflictingReservations.length > 0) {
+      return res.status(400).send(
+        "Reservation failed. There is already a reservation within 10 minutes of the selected pickup time."
+      );
+    }
+
+    // Step 3: Create the reservation
+    await insertSql.addReservation({
+      customer_email: email,
+      book_isbn,
+      reservation_date,
+      pickup_time,
+    });
+
+    // Step 4: Decrease book quantity in inventory
+    await updateSql.decreaseInventoryByOne(book_isbn);
+
+    res.redirect("/customer/books");
+  } catch (error) {
+    console.error("Error making reservation:", error);
+    res.status(500).send("Error making reservation.");
+  }
+});
+
+
+// Fetch all reservations for the customer
+router.get("/reservation", async (req, res) => {
+  const { email } = req.cookies.user;
+
+  try {
+    const reservations = await selectSql.getCustomerReservations(email);
+    res.render("customerReservations", { reservations });
+  } catch (error) {
+    console.error("Error fetching reservations:", error);
+    res.status(500).send("Error fetching reservations.");
+  }
+});
+
+// Update reservation
+router.post("/reservation/update", async (req, res) => {
+  const { reservation_id, reservation_date, pickup_time } = req.body;
+
+  try {
+    const currentDateTime = new Date();
+
+    // Combine reservation_date and pickup_time into a single datetime object
+    const newReservationDateTime = new Date(`${reservation_date}T${pickup_time}`);
+
+    if (newReservationDateTime < currentDateTime) {
+      return res.status(400).send("Reservation cannot be updated to a past time.");
+    }
+
+    // Check for conflicting reservations
+    const conflictingReservations = await selectSql.checkConflictingReservations({
+      reservation_id, // Ensure current reservation is excluded
+      book_isbn: req.body.book_isbn,
+      pickup_time,
+    });
+
+    if (conflictingReservations.length > 0) {
+      return res
+        .status(400)
+        .send(
+          "Reservation update failed. Another reservation exists within 10 minutes of the selected time."
+        );
+    }
+
+    // Update the reservation
+    const updated = await updateSql.updateReservation({
+      reservation_id,
+      reservation_date,
+      pickup_time,
+    });
+
+    if (!updated) {
+      return res.status(400).send("Failed to update reservation.");
+    }
+
+    res.redirect("/customer/reservation");
+  } catch (error) {
+    console.error("Error updating reservation:", error);
+    res.status(500).send("Error updating reservation.");
+  }
+});
+
+// Cancel a reservation
+router.post("/reservation/delete", async (req, res) => {
+  const { reservation_id } = req.body;
+
+  try {
+    // Step 1: Get the book ISBN associated with the reservation
+    const reservation = await selectSql.getReservationById(reservation_id);
+    if (!reservation) {
+      return res.status(404).send("Reservation not found.");
+    }
+
+    const { book_isbn } = reservation;
+
+    // Step 2: Delete the reservation
+    await deleteSql.deleteReservation(reservation_id);
+
+    // Step 3: Increase the book quantity in inventory
+    await updateSql.increaseInventoryByOne(book_isbn);
+
+    res.redirect("/customer/reservation");
+  } catch (error) {
+    console.error("Error canceling reservation:", error);
+    res.status(500).send("Error canceling reservation.");
+  }
+});
+
 
 export default router;

@@ -4,20 +4,45 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Customer Dashboard</title>
-  <link rel="stylesheet" href="/path/to/your/css/styles.css" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
-<body>
-  <header>
-    <h1>Welcome, {{user.email}}</h1>
-    <a href="/logout" class="btn btn-danger">Logout</a>
+<body class="bg-gray-100 min-h-screen flex flex-col">
+  <!-- Header -->
+  <header class="bg-indigo-600 text-white py-4 shadow">
+    <div class="container mx-auto flex justify-between items-center">
+      <h1 class="text-2xl font-bold">Welcome, {{user.email}}</h1>
+      <a href="/logout" class="btn btn-danger">Logout</a>
+    </div>
   </header>
-  <main>
-    <h2>What would you like to do?</h2>
-    <ul>
-      <li><a href="/customer/books">Browse Books</a></li>
-      <li><a href="/customer/reservation">View Your reservation</a></li>
-      <li><a href="/customer/basket">View your basket</a></li>
-    </ul>
+
+  <!-- Main Content -->
+  <main class="container mx-auto mt-8 flex flex-col items-center">
+    <h2 class="text-xl md:text-2xl font-semibold text-gray-700 mb-6">What would you like to do?</h2>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <!-- Browse Books -->
+      <a href="/customer/books" class="block p-6 bg-white rounded-lg shadow hover:shadow-lg hover:bg-indigo-50 transition">
+        <h3 class="text-lg font-medium text-indigo-600">Browse Books</h3>
+        <p class="text-gray-600">Explore the collection of available books.</p>
+      </a>
+      <!-- View Reservation -->
+      <a href="/customer/reservation" class="block p-6 bg-white rounded-lg shadow hover:shadow-lg hover:bg-indigo-50 transition">
+        <h3 class="text-lg font-medium text-indigo-600">View Your Reservations</h3>
+        <p class="text-gray-600">Check and manage your book reservations.</p>
+      </a>
+      <!-- View Basket -->
+      <a href="/customer/basket" class="block p-6 bg-white rounded-lg shadow hover:shadow-lg hover:bg-indigo-50 transition">
+        <h3 class="text-lg font-medium text-indigo-600">View Your Basket</h3>
+        <p class="text-gray-600">Review the books in your shopping basket.</p>
+      </a>
+    </div>
   </main>
+
+  <!-- Footer -->
+  <footer class="bg-gray-800 text-white py-4 mt-auto">
+    <div class="container mx-auto text-center">
+      <p class="text-sm">&copy; 2024 Bookstore. All rights reserved.</p>
+    </div>
+  </footer>
 </body>
 </html>

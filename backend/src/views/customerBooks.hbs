@@ -3,67 +3,94 @@
   <div class="mb-4">
     <a href="/customer" class="btn btn-secondary">Back to Main Page</a>
   </div>
- 
+
   <h2 class="mb-4">Available Books</h2>
-  
 
   <!-- Search Form -->
   <form method="get" action="/customer/books/search" class="mb-4">
     <div class="row g-3">
       <div class="col-md-8">
-        <input type="text" name="query" placeholder="Search books by title, category, or ISBN" class="form-control" required />
+        <input
+          type="text"
+          name="query"
+          placeholder="Search books by title, category, or ISBN"
+          class="form-control"
+          required
+        />
       </div>
       <div class="col-md-4">
         <button type="submit" class="btn btn-primary w-100">Search</button>
       </div>
     </div>
   </form>
-<table class="table table-striped">
-  <thead>
-    <tr>
-      <th>ISBN</th>
-      <th>Title</th>
-      <th>Author</th>
-      <th>Award</th>
-      <th>Category</th>
-      <th>Price</th>
-      <th>Total Quantity</th>
-      <th>Actions</th>
-    </tr>
-  </thead>
-  
-  <tbody>
-    {{#each books}}
-      <tr>
-        <td>{{this.isbn}}</td>
-        <td>{{this.title}}</td>
-        <td>{{this.authors}}</td>
-        <td>{{this.awards}}</td>
-        <td>{{this.category}}</td>
-        <td>${{this.price}}</td>
-        <td>{{this.total_quantity}}</td>
-        <td>
-          {{#if (gt this.total_quantity 0)}}
-            <form method="post" action="/customer/basket/add" class="d-inline">
-              <input type="hidden" name="book_isbn" value="{{this.isbn}}" />
-              <input
-                type="number"
-                name="quantity"
-                class="form-control d-inline w-50"
-                placeholder="Qty"
-                min="1"
-                max="{{this.total_quantity}}"
-                required
-              />
-              <button type="submit" class="btn btn-primary btn-sm">Add to Basket</button>
-            </form>
-          {{else}}
-            <span class="text-danger">Out of Stock</span>
-          {{/if}}
-        </td>
-      </tr>
-    {{/each}}
-  </tbody>
-</table>
 
+  <!-- Books Table -->
+  <table class="table table-striped">
+    <thead>
+      <tr>
+        <th>ISBN</th>
+        <th>Title</th>
+        <th>Author</th>
+        <th>Award</th>
+        <th>Category</th>
+        <th>Price</th>
+        <th>Total Quantity</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {{#each books}}
+        <tr>
+          <td>{{this.isbn}}</td>
+          <td>{{this.title}}</td>
+          <td>{{this.authors}}</td>
+          <td>{{this.awards}}</td>
+          <td>{{this.category}}</td>
+          <td>${{this.price}}</td>
+          <td>{{this.total_quantity}}</td>
+          <td>
+            {{#if (gt this.total_quantity 0)}}
+              <!-- Add to Basket Form -->
+              <form method="post" action="/customer/basket/add" class="d-inline">
+                <input type="hidden" name="book_isbn" value="{{this.isbn}}" />
+                <input
+                  type="number"
+                  name="quantity"
+                  class="form-control d-inline w-50"
+                  placeholder="Qty"
+                  min="1"
+                  max="{{this.total_quantity}}"
+                  required
+                />
+                <button type="submit" class="btn btn-primary btn-sm">Add to Basket</button>
+              </form>
+
+          <!-- Reserve Book Form -->
+<form method="post" action="/customer/reserve" class="d-inline mt-2">
+  <input type="hidden" name="book_isbn" value="{{this.isbn}}" />
+  <input
+    type="date"
+    name="reservation_date"
+    class="form-control d-inline w-50"
+    placeholder="Date"
+    required
+  />
+  <input
+    type="time"
+    name="pickup_time"
+    class="form-control d-inline w-50"
+    placeholder="Time"
+    required
+  />
+  <button type="submit" class="btn btn-warning btn-sm">Reserve</button>
+</form>
+
+            {{else}}
+              <span class="text-danger">Out of Stock</span>
+            {{/if}}
+          </td>
+        </tr>
+      {{/each}}
+    </tbody>
+  </table>
 </div>
