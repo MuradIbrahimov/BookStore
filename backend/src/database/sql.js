@@ -182,20 +182,74 @@ LEFT JOIN Book b ON ab.book_isbn = b.isbn;
       return result;
     }, {});
   },
+  getBasketById: async (id) => {
+  const query = `
+    SELECT id, locked_by, locked_at
+    FROM Shopping_Baskets
+    WHERE id = ?;
+  `;
+  const [rows] = await promisePool.query(query, [id]);
+  return rows[0];
+},
   getShoppingBasketsWithContents: async () => {
-    const query = `
-      SELECT sb.id, sb.order_date, sb.customer_email, 
-             b.title AS book_title, b.isbn AS book_isbn, c.quantity
-      FROM Shopping_Baskets sb
-      LEFT JOIN Contains c ON sb.id = c.shopping_basket_id
-      LEFT JOIN Book b ON c.book_isbn = b.isbn
-      ORDER BY sb.id;
-    `;
-    const [rows] = await promisePool.query(query);
-    return rows;
+  const query = `
+    SELECT 
+      sb.id AS basket_id,
+      sb.order_date,
+      sb.customer_email,
+      sb.locked_by,
+      c.book_isbn,
+      b.title AS book_title,
+      c.quantity
+    FROM Shopping_Baskets sb
+    LEFT JOIN Contains c ON sb.id = c.shopping_basket_id
+    LEFT JOIN Book b ON c.book_isbn = b.isbn;
+  `;
+
+  const [rows] = await promisePool.query(query);
+
+  // Group rows by basket ID
+  const baskets = rows.reduce((acc, row) => {
+    // Find or create the basket
+    let basket = acc.find(b => b.basket_id === row.basket_id);
+    if (!basket) {
+      basket = {
+        basket_id: row.basket_id,
+        order_date: row.order_date,
+        customer_email: row.customer_email,
+        locked_by: row.locked_by,
+        contents: []
+      };
+      acc.push(basket);
+    }
+
+    // Add contents if the row includes a book
+    if (row.book_isbn) {
+      basket.contents.push({
+        book_title: row.book_title,
+        book_isbn: row.book_isbn,
+        quantity: row.quantity,
+        locked_by: row.locked_by
+      });
+    }
+
+    return acc;
+  }, []);
+
+  return baskets;
+},
+  getShoppingBasketById: async (id) => {
+  const query = `
+    SELECT *
+    FROM Shopping_Baskets
+    WHERE id = ?;
+  `;
+
+  const [rows] = await promisePool.query(query, [id]);
+  return rows[0]; // Return the first result
   },
-  getShoppingBasketsWithContents: async () => {
-    const query = `
+  getShoppingBasketByIdContents: async (id) => {
+  const query = `
     SELECT 
       sb.id AS basket_id,
       sb.order_date,
@@ -205,33 +259,32 @@ LEFT JOIN Book b ON ab.book_isbn = b.isbn;
       c.quantity
     FROM Shopping_Baskets sb
     LEFT JOIN Contains c ON sb.id = c.shopping_basket_id
-    LEFT JOIN Book b ON c.book_isbn = b.isbn;
+    LEFT JOIN Book b ON c.book_isbn = b.isbn
+    WHERE sb.id = ?;
   `;
-    const [rows] = await promisePool.query(query);
 
-    // Group rows by basket_id to organize contents under each basket
-    const groupedBaskets = rows.reduce((acc, row) => {
-      const basket = acc[row.basket_id] || {
-        id: row.basket_id,
-        order_date: row.order_date,
-        customer_email: row.customer_email,
-        contents: [],
-      };
+  const [rows] = await promisePool.query(query, [id]);
 
-      if (row.book_isbn) {
-        basket.contents.push({
-          book_isbn: row.book_isbn,
-          book_title: row.book_title,
-          quantity: row.quantity,
-        });
-      }
+  if (rows.length === 0) {
+    return null; // Return null if the basket doesn't exist
+  }
 
-      acc[row.basket_id] = basket;
-      return acc;
-    }, {});
+  // Construct the basket object with contents
+  const basket = {
+    id: rows[0].basket_id,
+    order_date: rows[0].order_date,
+    customer_email: rows[0].customer_email,
+    contents: rows
+      .filter(row => row.book_isbn) // Exclude rows without books
+      .map(row => ({
+        book_title: row.book_title,
+        book_isbn: row.book_isbn,
+        quantity: row.quantity
+      }))
+  };
 
-    return Object.values(groupedBaskets);
-  },
+  return basket;
+},
   getAllBooks: async () => {
     const query = `
    SELECT 
@@ -515,9 +568,29 @@ export const updateSql = {
     await promisePool.query(query, [number, warehouse_code, book_isbn]);
   },
   updateShoppingBasket: async ({ id, order_date, customer_email }) => {
-    const query =
-      "UPDATE Shopping_Baskets SET order_date = ?, customer_email = ? WHERE id = ?";
-    await promisePool.query(query, [order_date, customer_email, id]);
+    const query = `
+    UPDATE Shopping_Baskets
+    SET order_date = ?, customer_email = ?
+    WHERE id = ?;
+  `;
+    const [result] = await promisePool.query(query, [
+      order_date,
+      customer_email,
+      id,
+    ]);
+    return result.affectedRows > 0;
+  },
+  unlockAllBaskets: async () => {
+    const query = `
+    UPDATE Shopping_Baskets
+    SET locked_by = NULL, locked_at = NULL;
+  `;
+    try {
+      const [result] = await promisePool.query(query);
+      return result.affectedRows > 0;
+    } catch (error) {
+      throw error;
+    }
   },
   updateBasketQuantity: async ({ customer_email, book_isbn, quantity }) => {
     // Log inputs for debugging
@@ -565,16 +638,24 @@ export const updateSql = {
     ]);
     return result.affectedRows > 0;
   },
-  updateReservation: async ({ reservation_id, reservation_date, pickup_time }) => {
-  const query = `
+  updateReservation: async ({
+    reservation_id,
+    reservation_date,
+    pickup_time,
+  }) => {
+    const query = `
     UPDATE Reservation
     SET reservation_date = ?, pickup_time = ?
     WHERE id = ?;
   `;
-  const [result] = await promisePool.query(query, [reservation_date, pickup_time, reservation_id]);
-  return result.affectedRows > 0;
+    const [result] = await promisePool.query(query, [
+      reservation_date,
+      pickup_time,
+      reservation_id,
+    ]);
+    return result.affectedRows > 0;
   },
-  
+
   updateReservationPickupTime: async ({ reservation_id, pickup_time }) => {
     const query = `
     UPDATE Reservation
@@ -597,14 +678,48 @@ export const updateSql = {
     return result.affectedRows > 0; // Return true if rows were updated
   },
   increaseInventoryByOne: async (book_isbn) => {
-  const query = `
+    const query = `
     UPDATE Inventory
     SET number = number + 1
     WHERE book_isbn = ?;
   `;
-  const [result] = await promisePool.query(query, [book_isbn]);
-  return result.affectedRows > 0; // Return true if rows were updated
+    const [result] = await promisePool.query(query, [book_isbn]);
+    return result.affectedRows > 0; // Return true if rows were updated
+  },
+ lockBasket: async (id, lockedBy) => {
+  const query = `
+    UPDATE Shopping_Baskets
+    SET locked_by = ?, locked_at = NOW()
+    WHERE id = ?
+      AND (locked_by IS NULL OR locked_by = '' OR TIMESTAMPDIFF(MINUTE, locked_at, NOW()) > 5);
+  `;
+  console.log(`Executing lock query for basket ID ${id} with user: ${lockedBy}`);
+  const [result] = await promisePool.query(query, [lockedBy, id]);
+  console.log(`Lock query result for basket ID ${id}:`, result);
+  return result.affectedRows > 0;
 },
+  unlockBasket: async (id) => {
+    const query = `
+    UPDATE Shopping_Baskets
+    SET locked_by = NULL, locked_at = NULL
+    WHERE id = ?;
+  `;
+    const [result] = await promisePool.query(query, [id]);
+    return result.affectedRows > 0;
+  },
+  startTransaction: async () => {
+    const query = `START TRANSACTION;`;
+    await promisePool.query(query);
+  },
+  commitTransaction: async () => {
+    const query = `COMMIT;`;
+    await promisePool.query(query);
+  },
+
+  rollbackTransaction: async () => {
+    const query = `ROLLBACK;`;
+    await promisePool.query(query);
+  },
 };
 
 

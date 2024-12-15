@@ -1,0 +1,61 @@
+ <div class="container my-5">
+    <h1 class="text-center mb-4">Edit Basket #{{basket.id}}</h1>
+
+    <!-- Basket Details Form -->
+    <form method="post" action="/admin/shoppingBaskets/edit/{{basket.id}}" class="card p-4 mb-4">
+      <h3 class="mb-3">Basket Details</h3>
+      <div class="mb-3">
+        <label for="order_date" class="form-label">Order Date</label>
+        <input type="date" id="order_date" name="order_date" class="form-control" value="{{basket.order_date}}" required />
+      </div>
+      <div class="mb-3">
+        <label for="customer_email" class="form-label">Customer Email</label>
+        <input type="email" id="customer_email" name="customer_email" class="form-control" value="{{basket.customer_email}}" required />
+      </div>
+      <div class="d-flex justify-content-between">
+        <button type="submit" class="btn btn-success">Save Changes</button>
+        <a href="/admin/shoppingBaskets" class="btn btn-secondary">Back to Baskets</a>
+      </div>
+    </form>
+
+    <!-- Basket Contents Table -->
+    <div class="card p-4 mb-4">
+      <h3 class="mb-3">Basket Contents</h3>
+      <table class="table table-striped">
+        <thead>
+          <tr>
+            <th>Book Title</th>
+            <th>ISBN</th>
+            <th>Quantity</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {{#each basketrender.contents}}
+          <tr>
+            <td>{{this.book_title}}</td>
+            <td>{{this.book_isbn}}</td>
+            <td>
+              <form method="post" action="/admin/shoppingBaskets/editContents/{{../basket.id}}/{{this.book_isbn}}" class="d-inline">
+                <input type="number" name="quantity" class="form-control d-inline w-50" value="{{this.quantity}}" required />
+                <button type="submit" class="btn btn-primary btn-sm">Update</button>
+              </form>
+            </td>
+            <td>
+              <form method="post" action="/admin/shoppingBaskets/deleteContents/{{../basket.id}}/{{this.book_isbn}}" class="d-inline">
+                <button type="submit" class="btn btn-danger btn-sm">Remove</button>
+              </form>
+            </td>
+          </tr>
+          {{/each}}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Delete Basket Button -->
+    <div class="text-end">
+      <form method="post" action="/admin/shoppingBaskets/delete/{{basket.id}}" class="d-inline">
+        <button type="submit" class="btn btn-danger">Delete Basket</button>
+      </form>
+    </div>
+  </div>

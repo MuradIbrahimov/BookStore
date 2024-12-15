@@ -26,6 +26,16 @@ hbs.registerHelper("multiply", (a, b) => {
 hbs.registerHelper("gt", function (a, b) {
   return a > b;
 });
+
+hbs.registerHelper("eq", function (a, b, options) {
+  if (a === b) {
+    return options.fn(this); // Render the truthy block
+  } else {
+    return options.inverse(this); // Render the `else` block
+  }
+});
+
+
 const PORT = 3000;
 
 const liveReloadServer = liveReload.createServer();

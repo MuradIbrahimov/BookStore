@@ -14,14 +14,11 @@
         <button type="submit" class="btn btn-primary w-100">Add Basket</button>
       </div>
       <div class="col-md-2 mb-2">
-              <button
-                class="btn btn-outline-danger w-100"
-                onclick="location.href='/admin'"
-              >
-                <i class="bi bi-gear"></i>
-                Back
-              </button>
-            </div>
+        <button class="btn btn-outline-danger w-100" onclick="location.href='/admin'">
+          <i class="bi bi-gear"></i>
+          Back
+        </button>
+      </div>
     </div>
   </form>
 
@@ -51,13 +48,14 @@
         <th>Order Date</th>
         <th>Customer Email</th>
         <th>Contents</th>
+        <th>Locked By</th>
         <th>Actions</th>
       </tr>
     </thead>
     <tbody>
       {{#each baskets}}
-        <tr id="basket-{{this.id}}">
-          <td>{{this.id}}</td>
+        <tr id="basket-{{this.basket_id}}">
+          <td>{{this.basket_id}}</td>
           <td>
             <span class="static-order-date">{{this.order_date}}</span>
             <input type="date" class="form-control edit-order-date d-none" value="{{this.order_date}}" />
@@ -66,36 +64,40 @@
             <span class="static-email">{{this.customer_email}}</span>
             <input type="email" class="form-control edit-email d-none" value="{{this.customer_email}}" />
           </td>
-        <td>
-  {{#each this.contents}}
-    <form method="post" action="/admin/shoppingBaskets/updateContains" class="d-inline">
-      <span>{{this.book_title}} ({{this.book_isbn}}): </span>
-      <input 
-        type="number" 
-        name="quantity" 
-        value="{{this.quantity}}" 
-        class="form-control d-inline w-auto" 
-        required 
-      />
-      <input type="hidden" name="shopping_basket_id" value="{{../id}}" />
-      <input type="hidden" name="book_isbn" value="{{this.book_isbn}}" />
-      <button type="submit" class="btn btn-sm btn-success">Update</button>
-    </form>
-    <br />
-  {{/each}}
-</td>
           <td>
-            <button class="btn btn-warning btn-sm edit-btn" onclick="toggleEdit('{{this.id}}')">Edit</button>
-            <button class="btn btn-success btn-sm save-btn d-none" onclick="saveEdit('{{this.id}}')">Save</button>
-            <form method="post" action="/admin/shoppingBaskets/delete/{{this.id}}" class="d-inline">
-              <button type="submit" class="btn btn-danger btn-sm">Delete</button>
-            </form>
+            {{#each this.contents}}
+              <span>{{this.book_title}} ({{this.book_isbn}}): {{this.quantity}}</span><br />
+            {{/each}}
           </td>
+          <td>{{this.locked_by}}</td>
+          <td>
+           <td>
+ <td>
+ {{#if this.locked_by}}
+  {{#eq this.locked_by ../currentUser.id}}
+    <a href="/admin/shoppingBaskets/edit/{{this.id}}" class="btn btn-warning btn-sm">Continue Editing</a>
+  {{else}}
+    <button class="btn btn-secondary btn-sm" disabled>Locked</button>
+  {{/eq}}
+{{else}}
+ <form method="post" action="/admin/shoppingbaskets/lock/{{this.basket_id}}" class="d-inline">
+  <button type="submit" class="btn btn-primary btn-sm">Edit</button>
+</form>
+
+{{/if}}
+
+</td>
+
+
         </tr>
       {{/each}}
     </tbody>
   </table>
+   <form method="post" action="/admin/shoppingBaskets/unlockAll">
+  <button type="submit" class="btn btn-danger">Unlock All Baskets</button>
+</form>
 </div>
+
 
 <script>
   function toggleEdit(id) {
