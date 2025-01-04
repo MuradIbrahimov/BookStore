@@ -23,6 +23,27 @@ router.get("/books", async (req, res) => {
     return res.redirect("/"); // Redirect to login if not logged in
   }
 
+router.get("/books/search", async (req, res) => {
+  const { query } = req.query;
+  if (!query) return res.status(400).send("Search query is required.");
+
+  try {
+    const results = await selectSql.searchBooks(query);
+    const booksWithQuantities = await Promise.all(
+      results.map(async (book) => {
+        const totalQuantity = await selectSql.getTotalBookQuantity(book.isbn);
+        return { ...book, totalQuantity };
+      })
+    );
+    res.render("customerBooks", { books: booksWithQuantities });
+  } catch (error) {
+    console.error("Error searching books:", error);
+    res.status(500).send("Error searching books.");
+  }
+});
+
+
+
   try {
       const books = await selectSql.getAllBooks();
       console.log({ books });

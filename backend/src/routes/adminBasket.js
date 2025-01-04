@@ -83,7 +83,6 @@ router.get("/edit/:id", async (req, res) => {
     }
 
     console.log("User authorized to edit the basket.");
-    console.log("basketin ici nedi",basketrender);
     res.render("editShoppingBasket", { basketrender });
   } catch (error) {
     console.error("Error fetching basket for editing:", error);

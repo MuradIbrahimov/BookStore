@@ -1,0 +1,3 @@
+OPEN BACKEND IN VISUAL CODE
+WRITE npm run start to terminal.
+Be sure that you are in backend folder
